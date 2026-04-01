@@ -24,7 +24,12 @@ fun SplashScreen(onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(" ابدا رحلتك التعليمية معنا الان ", fontSize = 40.sp)
+        Text(
+            text = "ابدأ رحلتك التعليمية معنا الآن",
+            fontSize = 32.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
         Spacer(Modifier.height(35.dp))
         Button(onClick = onClick) { Text("ابدأ") }
     }
@@ -55,7 +60,12 @@ fun SubjectScreen(level: String, onClick: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("اختر مادتك للمستوى  - $level", fontSize = 40.sp)
+        Text(
+            text = "اختر مادتك - $level",
+            fontSize = 28.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
         Spacer(Modifier.height(35.dp))
         listOf("تربية اسلامية", "لغة عربية", "رياضيات").forEach { subject ->
             Button(onClick = { onClick(subject) }) {

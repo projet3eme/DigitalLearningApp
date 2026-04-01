@@ -25,7 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
+import androidx.activity.compose.BackHandler
 class MainActivity : ComponentActivity() {
 
     private val CHANNEL_PRIMARY = "UC6r0ffiOauGJD0dbyYwlNtA" // الابتدائي
@@ -53,6 +53,15 @@ class MainActivity : ComponentActivity() {
                 var selectedVideoId by remember { mutableStateOf<String?>(null) }
                 var isLoading by remember { mutableStateOf(false) }
 
+                BackHandler {
+                    when (screen) {
+                        "videos" -> screen = "playlists"
+                        "playlists" -> screen = "subjects"
+                        "subjects" -> screen = "levels"
+                        "levels" -> screen = "splash"
+                        else -> {}
+                    }
+                }
                 when (screen) {
 
                     "splash" -> SplashScreen { screen = "levels" }
@@ -96,10 +105,11 @@ class MainActivity : ComponentActivity() {
                         if (isLoading) Loader()
                         else VideoScreen(videos) { selectedVideoId = it }
                     }
+
                 }
 
                 selectedVideoId?.let { videoId ->
-                    VideoPlayer(videoId) { selectedVideoId = null }
+                    VideoPlayer(videoId=videoId) { selectedVideoId = null }
                 }
             }
         }
