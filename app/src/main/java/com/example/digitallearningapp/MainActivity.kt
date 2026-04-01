@@ -1,6 +1,7 @@
 package com.example.digitallearningapp
 
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -13,21 +14,30 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import retrofit2.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : ComponentActivity() {
 
-    private val API_KEY = "YOUR API KEY"
-    private val ELEMENTARY_PLAYLIST_ID: String? = null // ضع Playlist ID إذا متاح
-    private val ELEMENTARY_CHANNEL_ID = "UC6r0ffiOauGJD0dbyYwlNtA"
-    private val MIDDLE_HIGH_PLAYLIST_ID: String? = null // ضع Playlist ID إذا متاح
-    private val MIDDLE_HIGH_CHANNEL_ID = "UCl7GUW9Mnug3UzNjg2ulk7A"
+    private val CHANNEL_PRIMARY = "UC6r0ffiOauGJD0dbyYwlNtA" // الابتدائي
+    private val CHANNEL_SECONDARY = "UCl7GUW9Mnug3UzNjg2ulk7A" // المتوسط والثانوي
+    private val API_KEY = "AIzaSyC3VzbxUXNJHp_B3xjuSFUpjr3FzWFLSBg" // ضع مفتاحك هنا
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("https://www.googleapis.com/youtube/v3/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    private val api = retrofit.create(YouTubeApi::class.java)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,188 +45,131 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-
-                val videos = remember { mutableStateListOf<Video>() }
+                var screen by remember { mutableStateOf("splash") }
+                var level by remember { mutableStateOf("") }
+                var subject by remember { mutableStateOf("") }
+                var playlists by remember { mutableStateOf(listOf<Playlist>()) }
+                var videos by remember { mutableStateOf(listOf<Video>()) }
                 var selectedVideoId by remember { mutableStateOf<String?>(null) }
-                var currentScreen by remember { mutableStateOf("Splash") }
-                var selectedPlaylistId by remember { mutableStateOf<String?>(null) }
-                var selectedChannelId by remember { mutableStateOf("") }
                 var isLoading by remember { mutableStateOf(false) }
 
-                when (currentScreen) {
+                when (screen) {
 
-                    "Splash" -> SplashScreen { currentScreen = "Level" }
+                    "splash" -> SplashScreen { screen = "levels" }
 
-                    "Level" -> LevelSelectionScreen { level ->
-                        videos.clear()
-                        when (level) {
-                            "ابتدائي" -> {
-                                selectedPlaylistId = ELEMENTARY_PLAYLIST_ID
-                                selectedChannelId = ELEMENTARY_CHANNEL_ID
-                            }
-                            "ثانوي" -> {
-                                selectedPlaylistId = MIDDLE_HIGH_PLAYLIST_ID
-                                selectedChannelId = MIDDLE_HIGH_CHANNEL_ID
-                            }
-                        }
+                    "levels" -> LevelScreen { chosenLevel ->
+                        level = chosenLevel
+                        screen = "subjects"
+                    }
 
+                    "subjects" -> SubjectScreen(level) { chosenSubject ->
+                        subject = chosenSubject
                         isLoading = true
-                        currentScreen = "Videos"
+                        playlists = emptyList()
 
-                        fetchVideosFlexible(API_KEY, selectedPlaylistId, selectedChannelId, videos) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val fetched = fetchPlaylists(level, subject)
+                            playlists = fetched
+                            Log.d("DEBUG_API", "قوائم التشغيل بعد التصفية: ${playlists.size}")
                             isLoading = false
+                            screen = "playlists"
                         }
                     }
 
-                    "Videos" -> {
-                        if (isLoading) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = androidx.compose.ui.Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        } else {
-                            VideoListScreen(videos) { videoId ->
-                                selectedVideoId = videoId
+                    "playlists" -> {
+                        if (isLoading) Loader()
+                        else PlaylistScreen(playlists) { playlistId ->
+                            isLoading = true
+                            videos = emptyList()
+
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val fetchedVideos = fetchVideos(playlistId)
+                                videos = fetchedVideos
+                                Log.d("DEBUG_API", "عدد الفيديوهات المسترجعة: ${videos.size}")
+                                isLoading = false
+                                screen = "videos"
                             }
                         }
+                    }
+
+                    "videos" -> {
+                        if (isLoading) Loader()
+                        else VideoScreen(videos) { selectedVideoId = it }
                     }
                 }
 
                 selectedVideoId?.let { videoId ->
-                    VideoWebView(videoId) {
-                        selectedVideoId = null
-                    }
+                    VideoPlayer(videoId) { selectedVideoId = null }
                 }
             }
         }
     }
 
-    private fun fetchVideosFlexible(
-        apiKey: String,
-        playlistId: String?,
-        channelId: String,
-        videos: MutableList<Video>,
-        onComplete: () -> Unit
-    ) {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://www.googleapis.com/youtube/v3/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+    // ================= API Calls =================
 
-        val api = retrofit.create(YouTubeApi::class.java)
+    private suspend fun fetchPlaylists(level: String, subject: String): List<Playlist> {
+        return try {
+            // توحيد النص لإزالة أل التعريف والفراغات
+            val cleanLevel = level.lowercase()
+                .replace("\\s|ال".toRegex(), "")
+                .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
 
-        val call: Call<YouTubeResponse> = if (!playlistId.isNullOrEmpty()) {
-            api.getVideosFromPlaylist(apiKey, playlistId)
-        } else {
-            api.getVideosFromChannel(apiKey, channelId)
-        }
+            val cleanSubject = subject.lowercase()
+                .replace("\\s|ال".toRegex(), "")
+                .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
 
-        call.enqueue(object : Callback<YouTubeResponse> {
-            override fun onResponse(call: Call<YouTubeResponse>, response: Response<YouTubeResponse>) {
-                if (response.isSuccessful) {
-                    response.body()?.items?.forEach { item ->
-                        val videoId = item.snippet.resourceId?.videoId ?: item.id.videoId
-                        val title = item.snippet.title
-                        val thumbnail = item.snippet.thumbnails.medium.url
+            val channelId = if (cleanLevel.contains("ابتدائي")) CHANNEL_PRIMARY else CHANNEL_SECONDARY
 
-                        if (!videoId.isNullOrEmpty()) {
-                            videos.add(Video(title, videoId, thumbnail))
-                        }
-                    }
-                }
-                onComplete()
+            val response = api.getPlaylists(channelId, API_KEY)
+            val items = response.items ?: emptyList()
+
+            // طباعة كل العناوين لتصحيح أي مشكلة
+            items.forEach { Log.d("DEBUG_API", "Playlist raw title: ${it.snippet.title}") }
+
+            // فلترة مرنة جدًا: تجاهل الفراغات، الفواصل، أل التعريف، همزات
+            val filtered = items.filter { item ->
+                var title = item.snippet.title.lowercase()
+                    .replace("\\s|[-|,،:_]".toRegex(), "")
+                    .replace("ال", "")
+                    .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
+                title.contains(cleanLevel) && title.contains(cleanSubject)
             }
 
-            override fun onFailure(call: Call<YouTubeResponse>, t: Throwable) {
-                onComplete()
+            filtered.map {
+                Playlist(
+                    id = it.id,
+                    title = it.snippet.title,
+                    thumbnails = it.snippet.thumbnails?.medium
+                )
             }
-        })
-    }
-}
 
-@Composable
-fun SplashScreen(onStart: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("مرحبا بك في التطبيق", fontSize = 24.sp)
-        Spacer(modifier = Modifier.height(20.dp))
-        Button(onClick = onStart) { Text("ابدأ") }
-    }
-}
-
-@Composable
-fun LevelSelectionScreen(onSelect: (String) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("اختر المستوى", fontSize = 20.sp)
-        Spacer(modifier = Modifier.height(20.dp))
-        Button(onClick = { onSelect("ابتدائي") }) { Text("ابتدائي") }
-        Spacer(modifier = Modifier.height(10.dp))
-        Button(onClick = { onSelect("ثانوي") }) { Text("متوسط/ثانوي") }
-    }
-}
-
-@Composable
-fun VideoListScreen(videos: List<Video>, onClick: (String) -> Unit) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-        items(videos) { video ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(4.dp)
-                    .clickable { onClick(video.videoId) }
-            ) {
-                Column(modifier = Modifier.padding(8.dp)) {
-                    Text(video.title)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    AsyncImage(
-                        model = video.thumbnail,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(200.dp)
-                    )
-                }
-            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_API", "فشل جلب قوائم التشغيل: ${e.message}")
+            emptyList()
         }
     }
-}
 
-@Composable
-fun VideoWebView(videoId: String, onClose: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onClose,
-        confirmButton = {
-            Text(
-                "إغلاق",
-                modifier = Modifier
-                    .padding(8.dp)
-                    .clickable { onClose() }
-            )
-        },
-        text = {
-            AndroidView(
-                factory = {
-                    WebView(it).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        webViewClient = WebViewClient()
-                        settings.javaScriptEnabled = true
-                        loadUrl("https://www.youtube.com/embed/$videoId")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(400.dp)
-            )
+    private suspend fun fetchVideos(playlistId: String): List<Video> {
+        return try {
+            Log.d("DEBUG_API", "جلب الفيديوهات من Playlist: $playlistId")
+            val response = api.getVideosFromPlaylist(API_KEY, playlistId)
+            val items = response.items ?: emptyList()
+
+            // طباعة كل الفيديوهات
+            items.forEach { Log.d("DEBUG_API", "Found video: ${it.snippet.title}") }
+
+            items.mapNotNull { item ->
+                val videoId = item.snippet.resourceId?.videoId ?: item.id.videoId
+                if (videoId.isNullOrEmpty()) return@mapNotNull null
+                Video(
+                    title = item.snippet.title ?: "بدون عنوان",
+                    videoId = videoId,
+                    thumbnail = item.snippet.thumbnails?.medium?.url ?: ""
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("DEBUG_API", "فشل جلب الفيديوهات: ${e.message}")
+            emptyList()
         }
-    )
+    }
 }
