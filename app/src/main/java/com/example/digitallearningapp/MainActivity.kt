@@ -26,6 +26,9 @@ import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import androidx.activity.compose.BackHandler
+import android.app.Activity
+import android.content.pm.ActivityInfo
+
 class MainActivity : ComponentActivity() {
 
     private val CHANNEL_PRIMARY = "UC6r0ffiOauGJD0dbyYwlNtA" // الابتدائي
@@ -114,7 +117,10 @@ class MainActivity : ComponentActivity() {
                 selectedVideoId?.let { videoId ->
                     VideoPlayerScreen(
                         videoId = videoId,
+                        title = videos.find { it.videoId == videoId }?.title ?: "",
                         onBack = {
+                            (this@MainActivity).requestedOrientation =
+                                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                             selectedVideoId = null
                             screen = "videos"
                         }

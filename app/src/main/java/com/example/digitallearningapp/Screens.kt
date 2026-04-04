@@ -27,6 +27,9 @@ import androidx.compose.foundation.background
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.statusBarsPadding
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun SplashScreen(onClick: () -> Unit) {
@@ -162,7 +165,8 @@ fun VideoPlayer(videoId: String, onClose: () -> Unit) {
     )
 }
 @Composable
-fun VideoPlayerScreen(videoId: String, onBack: () -> Unit) {
+fun VideoPlayerScreen(videoId: String, title: String, onBack: () -> Unit) {
+    val context = LocalContext.current
     Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding()) {
         // زر رجوع
         IconButton(onClick = onBack) {
@@ -175,5 +179,28 @@ fun VideoPlayerScreen(videoId: String, onBack: () -> Unit) {
             },
             modifier = Modifier.fillMaxWidth().height(250.dp)
         )
+        // عنوان الدرس
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(16.dp)
+        )
+
+// أزرار
+        Row(
+            Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = {
+                (context as? Activity)?.requestedOrientation =
+                    ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }) {
+                Text("ملء الشاشة")
+            }
+            Button(onClick = { }) {
+                Text("PDF")
+            }
+        }
     }
 }
