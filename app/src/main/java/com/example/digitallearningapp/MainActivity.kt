@@ -103,14 +103,24 @@ class MainActivity : ComponentActivity() {
 
                     "videos" -> {
                         if (isLoading) Loader()
-                        else VideoScreen(videos) { selectedVideoId = it }
+                        else VideoScreen(list = videos) {
+                            selectedVideoId = it
+                            screen = "player"
+                        }
                     }
 
                 }
 
                 selectedVideoId?.let { videoId ->
-                    VideoPlayer(videoId=videoId) { selectedVideoId = null }
+                    VideoPlayerScreen(
+                        videoId = videoId,
+                        onBack = {
+                            selectedVideoId = null
+                            screen = "videos"
+                        }
+                    )
                 }
+
             }
         }
     }

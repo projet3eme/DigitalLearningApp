@@ -20,6 +20,13 @@ import android.webkit.WebChromeClient
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.background
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @Composable
 fun SplashScreen(onClick: () -> Unit) {
@@ -63,6 +70,7 @@ fun SubjectScreen(level: String, onClick: (String) -> Unit) {
         Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
+
     ) {
         Text(
             text = "اختر مادتك - $level",
@@ -90,7 +98,7 @@ fun PlaylistScreen(list: List<Playlist>, onClick: (String) -> Unit) {
                     .padding(8.dp)
                     .clickable { onClick(playlist.id) }
             ) {
-                Column(Modifier.padding(8.dp)) {
+                Column(Modifier.padding(8.dp).statusBarsPadding()) {
                     Text(playlist.title, fontSize = 18.sp)
                     playlist.thumbnails?.url?.let { img ->
                         AsyncImage(model = img, contentDescription = null)
@@ -111,7 +119,7 @@ fun VideoScreen(list: List<Video>, onClick: (String) -> Unit) {
                     .padding(8.dp)
                     .clickable { onClick(video.videoId) }
             ) {
-                Column(Modifier.padding(8.dp)) {
+                Column(Modifier.padding(8.dp).statusBarsPadding()) {
                     Text(video.title, fontSize = 18.sp)
                     video.thumbnail?.let { img -> AsyncImage(model = img, contentDescription = null) }
                 }
@@ -152,4 +160,20 @@ fun VideoPlayer(videoId: String, onClose: () -> Unit) {
             )
         }
     )
+}
+@Composable
+fun VideoPlayerScreen(videoId: String, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding()) {
+        // زر رجوع
+        IconButton(onClick = onBack) {
+            Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+        }
+        // مشغل الفيديو
+        AndroidView(
+            factory = { context ->
+                YouTubePlayerView(context)
+            },
+            modifier = Modifier.fillMaxWidth().height(250.dp)
+        )
+    }
 }
