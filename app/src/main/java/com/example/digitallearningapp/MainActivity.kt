@@ -169,7 +169,7 @@ class MainActivity : ComponentActivity() {
             items.forEach { Log.d("DEBUG_API", "Found video: ${it.snippet.title}") }
 
             items.mapNotNull { item ->
-                val videoId = item.snippet.resourceId?.videoId ?: item.id.videoId
+                val videoId = item.snippet.resourceId?.videoId ?: item.id
                 if (videoId.isNullOrEmpty()) return@mapNotNull null
                 Video(
                     title = item.snippet.title ?: "بدون عنوان",

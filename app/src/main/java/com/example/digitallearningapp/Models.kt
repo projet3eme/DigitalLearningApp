@@ -45,16 +45,17 @@ data class YouTubeResponse(
 )
 
 data class YouTubeVideoItem(
-    val id: VideoId,
+    val id: String,
     val snippet: YouTubeSnippet
 )
 
-data class VideoId(
-    val videoId: String?
-)
+
 
 data class YouTubeSnippet(
     val title: String,
     val thumbnails: Thumbnails? = null,
-    val resourceId: VideoId? = null
+    val resourceId: ResourceId? = null
+)
+data class ResourceId(
+    val videoId: String? = null
 )

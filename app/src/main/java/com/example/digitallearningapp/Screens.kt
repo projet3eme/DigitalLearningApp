@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import android.webkit.WebChromeClient
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 
 @Composable
 fun SplashScreen(onClick: () -> Unit) {
@@ -126,21 +130,26 @@ fun Loader() {
 
 @Composable
 fun VideoPlayer(videoId: String, onClose: () -> Unit) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     AlertDialog(
         onDismissRequest = onClose,
         confirmButton = { Text("إغلاق", Modifier.clickable { onClose() }) },
         text = {
-            AndroidView(factory = {
-                WebView(it).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    webViewClient = WebViewClient()
-                    settings.javaScriptEnabled = true
-                    loadUrl("https://www.youtube.com/embed/$videoId")
-                }
-            })
+            AndroidView(
+                factory = { context ->
+                    YouTubePlayerView(context).apply {
+                        lifecycleOwner.lifecycle.addObserver(this)
+                        addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
+                            override fun onReady(youTubePlayer: YouTubePlayer) {
+                                youTubePlayer.loadVideo(videoId, 0f)
+                            }
+                        })
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+            )
         }
     )
 }
