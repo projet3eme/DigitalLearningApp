@@ -30,6 +30,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 @Composable
 fun SplashScreen(onClick: () -> Unit) {
@@ -167,39 +171,49 @@ fun VideoPlayer(videoId: String, onClose: () -> Unit) {
 @Composable
 fun VideoPlayerScreen(videoId: String, title: String, onBack: () -> Unit) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize().background(Color.Black).statusBarsPadding()) {
-        // زر رجوع
-        IconButton(onClick = onBack) {
-            Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+    val activity = context as? Activity
+    var isFullscreen by remember { mutableStateOf(false) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .statusBarsPadding()
+    ) {
+        // زر رجوع — يختفي في fullscreen
+        if (!isFullscreen) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+            }
         }
+
         // مشغل الفيديو
         AndroidView(
-            factory = { context ->
-                YouTubePlayerView(context)
+            factory = { ctx ->
+                YouTubePlayerView(ctx)
             },
-            modifier = Modifier.fillMaxWidth().height(250.dp)
-        )
-        // عنوان الدرس
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(16.dp)
+            modifier = if (isFullscreen)
+                Modifier.fillMaxSize()
+            else
+                Modifier.fillMaxWidth().height(250.dp)
         )
 
-// أزرار
-        Row(
-            Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = {
-                (context as? Activity)?.requestedOrientation =
-                    ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            }) {
-                Text("ملء الشاشة")
-            }
-            Button(onClick = { }) {
-                Text("PDF")
+        // باقي المحتوى — يختفي في fullscreen
+        if (!isFullscreen) {
+            Text(text = title, color = Color.White, fontSize = 18.sp,
+                modifier = Modifier.padding(16.dp))
+
+            Row(Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = {
+                    isFullscreen = true
+                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                }) {
+                    Text("ملء الشاشة")
+                }
+                Button(onClick = { }) {
+                    Text("PDF")
+                }
             }
         }
     }
