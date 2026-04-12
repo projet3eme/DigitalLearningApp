@@ -17,7 +17,7 @@ interface YouTubeApi {
     suspend fun getVideosFromPlaylist(
         @Query("key") apiKey: String,
         @Query("playlistId") playlistId: String,
-        @Query("part") part: String = "snippet",
+        @Query("part") part: String = "snippet,contentDetails",
         @Query("maxResults") maxResults: Int = 50
     ): YouTubeResponse
 }
