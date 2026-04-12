@@ -1,4 +1,3 @@
-
 package com.example.digitallearningapp
 
 import android.view.ViewGroup
@@ -34,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun SplashScreen(onClick: () -> Unit) {
@@ -55,22 +55,130 @@ fun SplashScreen(onClick: () -> Unit) {
 
 @Composable
 fun LevelScreen(onClick: (String) -> Unit) {
+
+    val levels = listOf("الابتدائي", "المتوسط", "الثانوي")
+    var expandedLevel by remember { mutableStateOf<String?>(null) }
+
     Column(
-        Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFC8E6C9))
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("اختر مستواك ", fontSize = 40.sp)
-        Spacer(Modifier.height(35.dp))
-        listOf("الابتدائي", " المتوسط", "الثانوي").forEach { level ->
-            Button(onClick = { onClick(level) }) {
-                Text(level)
+        verticalArrangement = Arrangement.Center // 🔥 هذا هو السر
+    )
+    {
+
+        // 🔹 العنوان
+        Text(
+            text = "اختر مستواك التعليمي",
+            fontSize = 45.sp,
+            color = Color(0xFF121212),
+            modifier = Modifier
+                .padding(vertical = 20.dp)
+                .fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f), // مهم للتوازن
+            horizontalAlignment = Alignment.CenterHorizontally
+        )
+        {
+
+            items(levels) { level ->
+
+                Column {
+
+                    // 🟡 كرت المستوى
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp)
+                            .clickable {
+                                expandedLevel =
+                                    if (expandedLevel == level) null else level
+                            },
+                        shape = RoundedCornerShape(25.dp), // دائري
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFFDE7)
+                                    // أصفر فاتح
+                        ),
+                        elevation = CardDefaults.cardElevation(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .wrapContentWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            Text("📚", fontSize = 26.sp)
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = level,
+                                fontSize = 22.sp,
+                                color = Color.Black
+                            )
+                        }
+                    }
+
+                    // 🟢 السنوات
+                    if (expandedLevel == level) {
+
+                        val years = when (level) {
+                            "الابتدائي" -> listOf(
+                                "السنة الأولى",
+                                "السنة الثانية",
+                                "السنة الثالثة",
+                                "السنة الرابعة",
+                                "السنة الخامسة"
+                            )
+                            "المتوسط" -> listOf(
+                                "السنة الأولى",
+                                "السنة الثانية",
+                                "السنة الثالثة",
+                                "السنة الرابعة"
+                            )
+                            "الثانوي" -> listOf(
+                                "السنة الأولى",
+                                "السنة الثانية",
+                                "السنة الثالثة"
+                            )
+                            else -> emptyList()
+                        }
+
+                        years.forEach { year ->
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, top = 8.dp)
+                                    .clickable {
+                                        onClick("$level - $year")
+                                    },
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color.White
+                                )
+                            ) {
+                                Text(
+                                    text = year,
+                                    modifier = Modifier.padding(14.dp),
+                                    fontSize = 18.sp
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            Spacer(Modifier.height(20.dp))
         }
     }
 }
-
 @Composable
 fun SubjectScreen(level: String, onClick: (String) -> Unit) {
     Column(
@@ -128,7 +236,9 @@ fun VideoScreen(list: List<Video>, onClick: (String) -> Unit) {
             ) {
                 Column(Modifier.padding(8.dp).statusBarsPadding()) {
                     Text(video.title, fontSize = 18.sp)
-                    video.thumbnail?.let { img -> AsyncImage(model = img, contentDescription = null) }
+                    video.thumbnail?.let { img ->
+                        AsyncImage(model = img, contentDescription = null)
+                    }
                 }
             }
         }
@@ -168,6 +278,7 @@ fun VideoPlayer(videoId: String, onClose: () -> Unit) {
         }
     )
 }
+
 @Composable
 fun VideoPlayerScreen(videoId: String, title: String, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -180,14 +291,12 @@ fun VideoPlayerScreen(videoId: String, title: String, onBack: () -> Unit) {
             .background(Color.Black)
             .statusBarsPadding()
     ) {
-        // زر رجوع — يختفي في fullscreen
         if (!isFullscreen) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
             }
         }
 
-        // مشغل الفيديو
         AndroidView(
             factory = { ctx ->
                 YouTubePlayerView(ctx)
@@ -198,13 +307,18 @@ fun VideoPlayerScreen(videoId: String, title: String, onBack: () -> Unit) {
                 Modifier.fillMaxWidth().height(250.dp)
         )
 
-        // باقي المحتوى — يختفي في fullscreen
         if (!isFullscreen) {
-            Text(text = title, color = Color.White, fontSize = 18.sp,
-                modifier = Modifier.padding(16.dp))
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 18.sp,
+                modifier = Modifier.padding(16.dp)
+            )
 
-            Row(Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
                 Button(onClick = {
                     isFullscreen = true
                     activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
