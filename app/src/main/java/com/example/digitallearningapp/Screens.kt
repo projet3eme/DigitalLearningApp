@@ -62,7 +62,7 @@ fun LevelScreen  (onClick: (String, String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFC8E6C9))
+            .background(Color(0xFFE8F5E9))
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center // 🔥 هذا هو السر
@@ -72,7 +72,7 @@ fun LevelScreen  (onClick: (String, String) -> Unit) {
         // 🔹 العنوان
         Text(
             text = "اختر مستواك التعليمي",
-            fontSize = 45.sp,
+            fontSize = 30.sp,
             color = Color(0xFF121212),
             modifier = Modifier
                 .padding(vertical = 20.dp)
@@ -185,25 +185,45 @@ fun SubjectScreen(onClick: (String) -> Unit) {
     val subjects = listOf("رياضيات", "لغة عربية", "تربية اسلامية")
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFE8F5E9)), // 💚 نفس الخلفية
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
 
-        Text("اختر المادة")
+        Text(
+            text = "اختر المادة",
+            fontSize = 40.sp,
+            color = Color(0xFF121212)
+        )
 
         Spacer(Modifier.height(20.dp))
 
         subjects.forEach { subject ->
-            Button(onClick = { onClick(subject) }) {
-                Text(subject)
+            Button(
+                onClick = { onClick(subject) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFFDE7) // 💛 نفس الأصفر
+                ),
+                        modifier = Modifier
+
+
+                .fillMaxWidth(1f) // 🔥 تكبير عرض الزر
+                .height(60.dp)       // 🔥 ت
+            )
+            {
+                Text(
+                    subject,
+                    fontSize = 18.sp,
+                    color = Color.Black // 🖤 نص أسود
+                )
             }
+
             Spacer(Modifier.height(10.dp))
         }
     }
 }
-
-
 @Composable
 fun PlaylistScreen(list: List<Playlist>, onClick: (String) -> Unit) {
 
