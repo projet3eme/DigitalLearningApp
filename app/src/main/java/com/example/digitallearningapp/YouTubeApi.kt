@@ -9,7 +9,7 @@ interface YouTubeApi {
     suspend fun getPlaylists(
         @Query("channelId") channelId: String,
         @Query("key") apiKey: String,
-        @Query("part") part: String = "snippet",
+        @Query("part") part: String = "snippet,contentDetails",
         @Query("maxResults") maxResults: Int = 50
     ): PlaylistsResponse
 

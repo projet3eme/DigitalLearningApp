@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 import kotlinx.coroutines.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
+import androidx.activity.compose.BackHandler
 class MainActivity : ComponentActivity() {
 
     private val CHANNEL_PRIMARY = "UC6r0ffiOauGJD0dbyYwlNtA"
@@ -107,6 +107,20 @@ class MainActivity : ComponentActivity() {
                         selectedVideoId = null
                     }
                 }
+                BackHandler {
+
+                    when (screen) {
+
+                        "videos" -> screen = "playlists"
+
+                        "playlists" -> screen = "subjects"
+
+                        "subjects" -> screen = "levels"
+
+                        "levels" -> finish() // خروج من التطبيق
+
+                    }
+                }
             }
         }
     }
@@ -199,10 +213,16 @@ class MainActivity : ComponentActivity() {
 
         return try {
 
-            val response = api.getVideosFromPlaylist(API_KEY, playlistId)
+            Log.e("CHECK", "PLAYLIST ID = $playlistId")
+
+            val response = api.getVideosFromPlaylist(
+                apiKey = API_KEY,
+                playlistId = playlistId
+            )
+
             val items = response.items ?: emptyList()
 
-            Log.d("DEBUG_VIDEOS", "SIZE = ${items.size}")
+            Log.e("CHECK", "ITEMS SIZE = ${items.size}")
 
             items.mapNotNull { item ->
 
@@ -211,20 +231,17 @@ class MainActivity : ComponentActivity() {
                         ?: item.snippet.resourceId?.videoId
                         ?: item.id.videoId
 
-                if (videoId.isNullOrEmpty()) {
-                    Log.d("DEBUG_VIDEOS", "SKIP: ${item.snippet.title}")
-                    return@mapNotNull null
-                }
+                if (videoId.isNullOrEmpty()) return@mapNotNull null
 
                 Video(
-                    title = item.snippet.title ?: "No Title",
+                    title = item.snippet.title,
                     videoId = videoId,
                     thumbnail = item.snippet.thumbnails?.medium?.url
                 )
             }
 
         } catch (e: Exception) {
-            Log.e("DEBUG_VIDEOS", "ERROR: ${e.message}")
+            Log.e("CHECK", "ERROR = ${e.message}")
             emptyList()
         }
     }

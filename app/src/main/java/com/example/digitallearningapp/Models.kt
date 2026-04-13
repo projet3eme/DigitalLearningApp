@@ -40,7 +40,8 @@ data class Video(
 )
 
 data class YouTubeResponse(
-    val items: List<YouTubeVideoItem>
+    val items: List<YouTubeVideoItem>,
+    val nextPageToken: String? = null
 )
 
 data class YouTubeVideoItem(
