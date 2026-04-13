@@ -213,35 +213,38 @@ class MainActivity : ComponentActivity() {
 
         return try {
 
-            Log.e("CHECK", "PLAYLIST ID = $playlistId")
-
             val response = api.getVideosFromPlaylist(
                 apiKey = API_KEY,
-                playlistId = playlistId
+                playlistId = playlistId,
+                part = "snippet,contentDetails",
+                maxResults = 50
             )
 
             val items = response.items ?: emptyList()
 
-            Log.e("CHECK", "ITEMS SIZE = ${items.size}")
+            Log.e("VIDEO_CHECK", "SIZE = ${items.size}")
 
-            items.mapNotNull { item ->
+            val result = items.mapNotNull { item ->
 
                 val videoId =
                     item.contentDetails?.videoId
                         ?: item.snippet.resourceId?.videoId
-                        ?: item.id.videoId
+                        ?: item.snippet.thumbnails?.medium?.url // fallback (لازم نمنع null)
 
                 if (videoId.isNullOrEmpty()) return@mapNotNull null
 
                 Video(
-                    title = item.snippet.title,
+                    title = item.snippet.title ?: "No Title",
                     videoId = videoId,
                     thumbnail = item.snippet.thumbnails?.medium?.url
                 )
             }
 
+            result
+
         } catch (e: Exception) {
-            Log.e("CHECK", "ERROR = ${e.message}")
+
+            Log.e("VIDEO_ERROR", e.message ?: "error")
             emptyList()
         }
     }

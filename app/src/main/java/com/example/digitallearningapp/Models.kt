@@ -40,15 +40,13 @@ data class Video(
 )
 
 data class YouTubeResponse(
-    val items: List<YouTubeVideoItem>,
+    val items: List<YouTubeVideoItem>? = null,
     val nextPageToken: String? = null
 )
 
 data class YouTubeVideoItem(
-    val id: VideoId,
     val snippet: YouTubeSnippet,
-     val contentDetails: ContentDetails? = null // أضف هذا
-
+    val contentDetails: ContentDetails? = null
 )
 
 data class VideoId(
