@@ -54,7 +54,7 @@ fun SplashScreen(onClick: () -> Unit) {
 }
 
 @Composable
-fun LevelScreen(onClick: (String) -> Unit) {
+fun LevelScreen  (onClick: (String, String) -> Unit) {
 
     val levels = listOf("الابتدائي", "المتوسط", "الثانوي")
     var expandedLevel by remember { mutableStateOf<String?>(null) }
@@ -159,7 +159,7 @@ fun LevelScreen(onClick: (String) -> Unit) {
                                     .fillMaxWidth()
                                     .padding(start = 20.dp, top = 8.dp)
                                     .clickable {
-                                        onClick("$level - $year")
+                                        onClick(level, year)
                                     },
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
@@ -180,43 +180,64 @@ fun LevelScreen(onClick: (String) -> Unit) {
     }
 }
 @Composable
-fun SubjectScreen(level: String, onClick: (String) -> Unit) {
+fun SubjectScreen(onClick: (String) -> Unit) {
+
+    val subjects = listOf("رياضيات", "لغة عربية", "تربية اسلامية")
+
     Column(
-        Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
-
     ) {
-        Text(
-            text = "اختر مادتك - $level",
-            fontSize = 28.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(Modifier.height(35.dp))
-        listOf("تربية اسلامية", "لغة عربية", "رياضيات").forEach { subject ->
+
+        Text("اختر المادة")
+
+        Spacer(Modifier.height(20.dp))
+
+        subjects.forEach { subject ->
             Button(onClick = { onClick(subject) }) {
                 Text(subject)
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(10.dp))
         }
     }
 }
 
+
 @Composable
 fun PlaylistScreen(list: List<Playlist>, onClick: (String) -> Unit) {
+
     LazyColumn {
+
         items(list) { playlist ->
+
             Card(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
-                    .clickable { onClick(playlist.id) }
+                    .clickable {
+                        // 🔥 هذا هو المهم
+                        onClick(playlist.id)
+                    }
             ) {
-                Column(Modifier.padding(8.dp).statusBarsPadding()) {
-                    Text(playlist.title, fontSize = 18.sp)
+
+                Column(Modifier.padding(12.dp)) {
+
+                    Text(
+                        text = playlist.title,
+                        fontSize = 18.sp
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
                     playlist.thumbnails?.url?.let { img ->
-                        AsyncImage(model = img, contentDescription = null)
+                        AsyncImage(
+                            model = img,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                        )
                     }
                 }
             }

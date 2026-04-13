@@ -2,182 +2,230 @@ package com.example.digitallearningapp
 
 import android.os.Bundle
 import android.util.Log
-import android.view.ViewGroup
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import coil.compose.AsyncImage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : ComponentActivity() {
 
-    // ضع هنا القيم الخاصة بك
     private val CHANNEL_PRIMARY = "UC6r0ffiOauGJD0dbyYwlNtA"
     private val CHANNEL_SECONDARY = "UCl7GUW9Mnug3UzNjg2ulk7A"
     private val API_KEY = "AIzaSyC3VzbxUXNJHp_B3xjuSFUpjr3FzWFLSBg"
 
-    private val retrofit = Retrofit.Builder()
+    private val api = Retrofit.Builder()
         .baseUrl("https://www.googleapis.com/youtube/v3/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
-
-    private val api = retrofit.create(YouTubeApi::class.java)
+        .create(YouTubeApi::class.java)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
+
             MaterialTheme {
+
+                // ================= STATE =================
                 var screen by remember { mutableStateOf("splash") }
+
                 var level by remember { mutableStateOf("") }
+                var year by remember { mutableStateOf("") }
                 var subject by remember { mutableStateOf("") }
+
                 var playlists by remember { mutableStateOf(listOf<Playlist>()) }
                 var videos by remember { mutableStateOf(listOf<Video>()) }
+
                 var selectedVideoId by remember { mutableStateOf<String?>(null) }
                 var isLoading by remember { mutableStateOf(false) }
 
-                when (screen) {
-                    "splash" -> SplashScreen { screen = "levels" }
+                // ================= NAVIGATION =================
 
-                    "levels" -> LevelScreen { chosenLevel ->
+                when (screen) {
+
+                    // 🔵 SPLASH
+                    "splash" -> SplashScreen {
+                        screen = "levels"
+                    }
+
+                    // 🔵 LEVEL + YEAR
+                    "levels" -> LevelScreen { chosenLevel, chosenYear ->
                         level = chosenLevel
+                        year = chosenYear
                         screen = "subjects"
                     }
 
-                    "subjects" -> SubjectScreen(level) { chosenSubject ->
+                    // 🔵 SUBJECT
+                    "subjects" -> SubjectScreen { chosenSubject ->
+
                         subject = chosenSubject
                         isLoading = true
-                        playlists = emptyList()
 
                         CoroutineScope(Dispatchers.IO).launch {
-                            val fetched = fetchPlaylists(level, subject)
-                            playlists = fetched
-                            Log.d("DEBUG_API", "قوائم التشغيل بعد التصفية: ${playlists.size}")
+                            playlists = fetchPlaylists(level, year, subject)
                             isLoading = false
                             screen = "playlists"
                         }
                     }
 
+                    // 🔵 PLAYLISTS
                     "playlists" -> {
-                        if (isLoading) Loader()
-                        else PlaylistScreen(playlists) { playlistId ->
-                            isLoading = true
-                            videos = emptyList()
+                        if (isLoading) {
+                            Loader()
+                        } else {
+                            PlaylistScreen(playlists) { playlistId ->
 
-                            CoroutineScope(Dispatchers.IO).launch {
-                                val fetchedVideos = fetchVideos(playlistId)
-                                videos = fetchedVideos
-                                Log.d("DEBUG_API", "عدد الفيديوهات المسترجعة: ${videos.size}")
-                                isLoading = false
-                                screen = "videos"
+                                isLoading = true
+
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    videos = fetchVideos(playlistId)
+                                    isLoading = false
+                                    screen = "videos"
+                                }
                             }
                         }
                     }
 
+                    // 🔵 VIDEOS
                     "videos" -> {
                         if (isLoading) Loader()
-                        else VideoScreen(videos) { selectedVideoId = it }
+                        else VideoScreen(videos) { videoId ->
+                            selectedVideoId = videoId
+                        }
                     }
                 }
 
+                // ================= VIDEO PLAYER =================
+
                 selectedVideoId?.let { videoId ->
-                    VideoPlayer(videoId) { selectedVideoId = null }
+                    VideoPlayer(videoId) {
+                        selectedVideoId = null
+                    }
                 }
             }
         }
     }
 
-    // ======== API Calls ========
-    private suspend fun fetchPlaylists(level: String, subject: String): List<Playlist> {
+    // ================= NORMALIZE =================
+
+    fun normalize(text: String): String {
+        return text.lowercase()
+            .replace("ال", "")
+            .replace(" ", "")
+            .replace("ة", "ه")
+            .replace("أ", "ا")
+            .replace("إ", "ا")
+            .replace("آ", "ا")
+    }// ================= KEYWORDS =================
+
+    fun levelKeywords(level: String) = when {
+        level.contains("ابتد") -> listOf("ابتدائي", "ابتدائية")
+        level.contains("متوسط") -> listOf("متوسط")
+        level.contains("ثانوي") -> listOf("ثانوي")
+        else -> listOf(level)
+    }
+
+    fun yearKeywords(year: String) = when {
+        year.contains("اول") -> listOf("اولى", "السنةالاولى")
+        year.contains("ثاني") -> listOf("ثانية", "السنةالثانية")
+        year.contains("ثالث") -> listOf("ثالثة", "السنةالثالثة")
+        year.contains("رابع") -> listOf("رابعة", "السنةالرابعة")
+        year.contains("خامس") -> listOf("خامسة", "السنةالخامسة")
+        else -> listOf(year)
+    }
+
+    fun subjectKeywords(subject: String) = when {
+        subject.contains("عرب") -> listOf("عربية", "اللغةالعربية", "عربي")
+        subject.contains("رياض") -> listOf("رياضيات", "الرياضيات")
+        subject.contains("اسلام") -> listOf("اسلامية", "التربيةالاسلامية")
+        else -> listOf(subject)
+    }
+
+    // ================= FETCH PLAYLISTS =================
+
+    private suspend fun fetchPlaylists(
+        level: String,
+        year: String,
+        subject: String
+    ): List<Playlist> {
+
         return try {
-            val channelId = if (level.contains("الابتدائي")) CHANNEL_PRIMARY else CHANNEL_SECONDARY
+
+            val channelId = if (level.contains("ابتد")) {
+                CHANNEL_PRIMARY
+            } else {
+                CHANNEL_SECONDARY
+            }
+
             val response = api.getPlaylists(channelId, API_KEY)
             val items = response.items ?: emptyList()
 
-            // فلترة مرنة جدًا
-            val filtered = items.filter { item ->
-                var title = item.snippet.title.lowercase()
-                    .replace("\\s|[-|,،:_]".toRegex(), "")
-                    .replace("ال", "")
-                    .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
+            val levels = levelKeywords(level)
+            val years = yearKeywords(year)
+            val subjects = subjectKeywords(subject)
 
-                var cleanLevel = level.lowercase()
-                    .replace("\\s".toRegex(), "")
-                    .replace("ال", "")
-                    .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
+            items.filter { item ->
 
-                var cleanSubject = subject.lowercase()
-                    .replace("\\s".toRegex(), "")
-                    .replace("ال", "")
-                    .replace("إ", "ا").replace("أ", "ا").replace("آ", "ا")
+                val title = normalize(item.snippet.title)
 
-                title.contains(cleanLevel) && title.contains(cleanSubject)
-            }
+                val matchLevel = levels.any { title.contains(normalize(it)) }
+                val matchYear = years.any { title.contains(normalize(it)) }
+                val matchSubject = subjects.any { title.contains(normalize(it)) }
 
-            filtered.map {
+                matchLevel && matchYear && matchSubject
+            }.map {
+
                 Playlist(
                     id = it.id,
                     title = it.snippet.title,
                     thumbnails = it.snippet.thumbnails?.medium
                 )
             }
+
         } catch (e: Exception) {
-            Log.e("DEBUG_API", "فشل جلب قوائم التشغيل: ${e.message}")
+            Log.e("API", "fetchPlaylists error: ${e.message}")
             emptyList()
         }
     }
 
-    private suspend fun fetchVideos(playlistId: String): List<Video> {
-        return try {
-            Log.d("DEBUG_API", "جلب الفيديوهات من Playlist: $playlistId")
+    // ================= FETCH VIDEOS =================
 
-            // استدعاء API
+    private suspend fun fetchVideos(playlistId: String): List<Video> {
+
+        return try {
+
             val response = api.getVideosFromPlaylist(API_KEY, playlistId)
             val items = response.items ?: emptyList()
 
-            // طباعة كل الفيديوهات للتأكد
-            items.forEach {
-                val vid = it.contentDetails?.videoId ?: it.snippet.resourceId?.videoId ?: it.id.videoId
-                Log.d("DEBUG_API", "Found video: ${it.snippet.title}, videoId: $vid")
-            }
+            Log.d("DEBUG_VIDEOS", "SIZE = ${items.size}")
 
-            // تحويل الفيديوهات إلى قائمة Video
-            val videosList = items.mapNotNull { item ->
-                val videoId = item.contentDetails?.videoId
-                    ?: item.snippet.resourceId?.videoId
-                    ?: item.id.videoId
-                if (videoId.isNullOrEmpty()) return@mapNotNull null
+            items.mapNotNull { item ->
+
+                val videoId =
+                    item.contentDetails?.videoId
+                        ?: item.snippet.resourceId?.videoId
+                        ?: item.id.videoId
+
+                if (videoId.isNullOrEmpty()) {
+                    Log.d("DEBUG_VIDEOS", "SKIP: ${item.snippet.title}")
+                    return@mapNotNull null
+                }
 
                 Video(
-                    title = item.snippet.title ?: "بدون عنوان",
+                    title = item.snippet.title ?: "No Title",
                     videoId = videoId,
-                    thumbnail = item.snippet.thumbnails?.medium?.url ?: ""
+                    thumbnail = item.snippet.thumbnails?.medium?.url
                 )
             }
 
-            videosList
-
         } catch (e: Exception) {
-            Log.e("DEBUG_API", "فشل جلب الفيديوهات: ${e.message}")
+            Log.e("DEBUG_VIDEOS", "ERROR: ${e.message}")
             emptyList()
         }
-    } 
+    }
 }
