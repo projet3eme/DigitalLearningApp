@@ -3,6 +3,8 @@ package com.example.digitallearningapp.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,8 +41,12 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onCreateAccountClick: () -> Unit
 ) {
-    // التحقق من صحة البيانات
     val isFormValid = name.isNotBlank() && selectedLevel.isNotBlank()
+    val primaryDark = Color(0xFF1A3A6B)
+    
+    // لإدارة حالة الضغط على الزر
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
     Box(
         modifier = Modifier
@@ -51,7 +57,6 @@ fun LoginScreen(
                 )
             )
     ) {
-        // Decorative background texture
         Box(modifier = Modifier.fillMaxSize().alpha(0.2f)) {
             Box(
                 modifier = Modifier
@@ -78,7 +83,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App Branding
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -111,9 +115,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Form Section
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(32.dp)) {
-                // Name Input
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "الاسم الكامل",
@@ -128,15 +130,14 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(56.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White.copy(alpha = 0.1f))
-                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+                            .background(Color.White)
                             .padding(horizontal = 24.dp),
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         if (name.isEmpty()) {
                             Text(
                                 text = "أدخل اسمك هنا",
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = primaryDark.copy(alpha = 0.4f),
                                 fontSize = 16.sp,
                                 modifier = Modifier.fillMaxWidth(),
                                 textAlign = TextAlign.Right
@@ -147,17 +148,16 @@ fun LoginScreen(
                             onValueChange = onNameChange,
                             modifier = Modifier.fillMaxWidth(),
                             textStyle = TextStyle(
-                                color = Color.White,
+                                color = primaryDark,
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Right
                             ),
-                            cursorBrush = SolidColor(Color.White),
+                            cursorBrush = SolidColor(primaryDark),
                             singleLine = true
                         )
                     }
                 }
 
-                // Level Selector
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
                         text = "اختر المستوى الدراسي",
@@ -178,19 +178,15 @@ fun LoginScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp)
-                                    .shadow(if (isSelected) 8.dp else 0.dp, RoundedCornerShape(16.dp), spotColor = Color(0xFF064E3B).copy(alpha = 0.2f))
+                                    .shadow(if (isSelected) 8.dp else 4.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) Color(0xFF1A3A6B) else Color.White.copy(alpha = 0.1f))
-                                    .clickable { onLevelSelected(level) }
-                                    .then(
-                                        if (!isSelected) Modifier.border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-                                        else Modifier
-                                    ),
+                                    .background(if (isSelected) primaryDark else Color.White)
+                                    .clickable { onLevelSelected(level) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = level,
-                                    color = Color.White,
+                                    color = if (isSelected) Color.White else primaryDark,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 )
@@ -199,7 +195,6 @@ fun LoginScreen(
                     }
                 }
 
-                // Login Button
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
                         onClick = {
@@ -211,23 +206,26 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .height(64.dp)
                             .shadow(20.dp, RoundedCornerShape(999.dp), spotColor = Color.Black.copy(alpha = 0.1f)),
+                        interactionSource = interactionSource,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) Color(0xFF1A3A6B) else Color.Gray.copy(alpha = 0.5f)
+                            containerColor = if (isPressed) primaryDark else Color.White,
+                            contentColor = if (isPressed) Color.White else primaryDark,
+                            disabledContainerColor = Color.White.copy(alpha = 0.5f),
+                            disabledContentColor = primaryDark.copy(alpha = 0.5f)
                         ),
-                        shape = RoundedCornerShape(999.dp)
+                        shape = RoundedCornerShape(999.dp),
+                        enabled = isFormValid
                     ) {
                         Text(
                             text = "تسجيل الدخول",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
+                            fontWeight = FontWeight.Black
                         )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "ليس لديك حساب؟ ",
                             color = Color.White.copy(alpha = 0.6f),
@@ -247,7 +245,6 @@ fun LoginScreen(
             }
         }
 
-        // Bottom curve decoration
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()

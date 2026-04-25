@@ -24,22 +24,28 @@ fun LevelSelectionScreen(
         "الثانوي" to "SEC"
     )
 
+    // درجة اللون الأزرق الداكنة السابقة (التي كانت لإطار الترحيب)
+    val darkBlue = Color(0xFF2C5282)
+    // درجة اللون الأزرق الباردة (الموجودة في 2AP و 4AP)
+    val coolBlue = Color(0xFF4A90E2)
+
     Column(
-        modifier = Modifier.fillMaxSize().background(Color.White)
+        modifier = Modifier.fillMaxSize().background(Color(0xFFF5F5F5))
     ) {
+        // إطار الترحيب باللون الأزرق الداكن
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
-                .background(Color(0xFF64B5F6))
+                .height(150.dp)
+                .background(darkBlue)
                 .padding(16.dp)
         ) {
             Text(
                 text = "مرحبا بك $studentName",
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.CenterEnd)
+                modifier = Modifier.align(Alignment.Center)
             )
         }
 
@@ -49,35 +55,52 @@ fun LevelSelectionScreen(
             val level = pair.first
             val code = pair.second
 
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clickable { onLevelSelected(level) },
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(90.dp).height(60.dp)
-                        .background(
-                            color = if (index % 2 == 0) Color(0xFF1A0099) else Color(0xFF00E5FF),
-                            shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(70.dp)
                 ) {
-                    Text(text = code, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f).height(60.dp)
-                        .background(Color.White, RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Text(text = level, fontSize = 18.sp, color = Color.Black)
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .fillMaxHeight()
+                            .background(
+                                // جعل MID باللون الداكن، و PRI/SEC باللون البارد
+                                color = if (code == "MID") darkBlue else coolBlue
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = code,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = level,
+                            fontSize = 20.sp,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
-            HorizontalDivider(color = Color(0xFFEEEEEE))
         }
     }
 }

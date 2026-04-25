@@ -28,6 +28,9 @@ fun SubjectScreen(
     onBack: () -> Unit,
     onSubjectClick: (String, String, String, String) -> Unit
 ) {
+    // إصلاح التكرار: نقوم بتصفية القائمة لعرض المواد الفريدة فقط بناءً على الاسم
+    val uniqueSubjects = subjects.distinctBy { it.name }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +83,7 @@ fun SubjectScreen(
                         color = Color(0xFF4A90E2)
                     )
                 }
-                subjects.isEmpty() -> {
+                uniqueSubjects.isEmpty() -> {
                     Text(
                         text = "لا توجد مواد متاحة",
                         color = Color(0xFF2C5282),
@@ -89,7 +92,7 @@ fun SubjectScreen(
                 }
                 else -> {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(subjects) { subject ->
+                        items(uniqueSubjects) { subject ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()

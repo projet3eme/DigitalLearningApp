@@ -21,7 +21,6 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
-    // تحقق إذا الطالب سجل دخول من قبل
     val savedName = prefs.getString("student_name", "") ?: ""
     val startDest = if (savedName.isNotEmpty()) "level_screen/$savedName" else "splash"
 
@@ -44,7 +43,6 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
                 selectedLevel = selectedLevel,
                 onLevelSelected = { selectedLevel = it },
                 onLoginSuccess = {
-                    // احفظ الاسم
                     prefs.edit().putString("student_name", name).apply()
                     navController.navigate("level_screen/$name") {
                         popUpTo("login_screen") { inclusive = true }
@@ -98,22 +96,26 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
             val name     = backStackEntry.arguments?.getString("name") ?: ""
 
             val subjectViewModel: SubjectViewModel = viewModel()
+            
             LaunchedEffect(levelArg, yearArg) {
-                val cleanLevel = when {
-                    levelArg.contains("ابتد") -> "ابتدائي"
-                    levelArg.contains("متوسط") -> "متوسط"
-                    levelArg.contains("ثانوي") -> "ثانوي"
+                // إصلاح حاسم: توحيد مسميات المستويات والسنوات لتتطابق مع قاعدة البيانات مهما كان الإدخال
+                val dbLevel = when {
+                    levelArg.contains("ابتد") -> "الابتدائي"
+                    levelArg.contains("متوسط") -> "المتوسط"
+                    levelArg.contains("ثانوي") -> "الثانوي"
                     else -> levelArg
                 }
-                val cleanYear = when {
-                    yearArg.contains("الأولى") -> "الأولى"
-                    yearArg.contains("الثانية") -> "الثانية"
-                    yearArg.contains("الثالثة") -> "الثالثة"
-                    yearArg.contains("الرابعة") -> "الرابعة"
-                    yearArg.contains("الخامسة") -> "الخامسة"
+                
+                val dbYear = when {
+                    yearArg.contains("الأولى") || yearArg.contains("1") -> "السنة الأولى"
+                    yearArg.contains("الثانية") || yearArg.contains("2") -> "السنة الثانية"
+                    yearArg.contains("الثالثة") || yearArg.contains("3") -> "السنة الثالثة"
+                    yearArg.contains("الرابعة") || yearArg.contains("4") -> "السنة الرابعة"
+                    yearArg.contains("الخامسة") || yearArg.contains("5") -> "السنة الخامسة"
                     else -> yearArg
                 }
-                subjectViewModel.fetchSubjects(cleanLevel, cleanYear)
+                
+                subjectViewModel.fetchSubjects(dbLevel, dbYear)
             }
 
             SubjectScreen(

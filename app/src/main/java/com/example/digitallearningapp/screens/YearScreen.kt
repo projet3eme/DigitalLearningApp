@@ -46,9 +46,9 @@ fun YearSelectionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F4FF))
+            .background(Color(0xFFF5F7FF)) // خلفية أفتح قليلاً لبروز البطاقات
     ) {
-        // Header بتدرج أزرق
+        // Header بتدرج أزرق متناسق
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -66,7 +66,7 @@ fun YearSelectionScreen(
             ) {
                 Text(
                     text = level,
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
@@ -80,60 +80,61 @@ fun YearSelectionScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         years.forEachIndexed { index, pair ->
             val year = pair.first
             val code = pair.second
 
-            Row(
+            // استخدام البطاقات (Cards) لجعل الأطر بارزة
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clickable { onYearSelected(year) },
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                // الكود — أزرق غامق أو متوسط
-                Box(
-                    modifier = Modifier
-                        .width(90.dp)
-                        .height(60.dp)
-                        .background(
-                            color = if (index % 2 == 0) Color(0xFF2C5282) else Color(0xFF4A90E2),
-                            shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(70.dp)
                 ) {
-                    Text(
-                        text = code,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                }
-
-                // اسم السنة
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(60.dp)
-                        .background(
-                            Color.White,
-                            RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp)
+                    // صندوق الكود الملون (أزرق بارد أو داكن)
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .fillMaxHeight()
+                            .background(
+                                color = if (index % 2 == 0) Color(0xFF4A90E2) else Color(0xFF2C5282)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = code,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
                         )
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Text(
-                        text = year,
-                        fontSize = 18.sp,
-                        color = Color(0xFF1A3A6B),
-                        fontWeight = FontWeight.Medium
-                    )
+                    }
+
+                    // اسم السنة
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Text(
+                            text = year,
+                            fontSize = 18.sp,
+                            color = Color(0xFF1A3A6B),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-
-            HorizontalDivider(color = Color(0xFFDDE3F0))
         }
     }
 }
