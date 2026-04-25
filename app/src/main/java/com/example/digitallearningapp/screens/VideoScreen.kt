@@ -33,8 +33,13 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.view.View
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener
 
-// الألوان السينمائية المتطابقة مع التصميم
 val CinematicDark = Color(0xFF1A202C)
 val PrimaryBlue = Color(0xFF005DA7)
 val SuccessGreen = Color(0xFF006D3C)
@@ -57,21 +62,16 @@ fun VideoScreen(
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    
-    // محاولة العثور على الفيديو الممرر في القائمة، أو اختيار الأول
     val initialVideo = list.find { it.videoId == initialVideoId } ?: list.first()
     var selectedVideo by remember { mutableStateOf(initialVideo) }
 
-    // تحديث الفيديو المختار إذا تغير initialVideoId خارجياً
     LaunchedEffect(initialVideoId) {
         list.find { it.videoId == initialVideoId }?.let {
             selectedVideo = it
         }
     }
 
-    Scaffold(
-        containerColor = CinematicDark
-    ) { padding ->
+    Scaffold(containerColor = CinematicDark) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             AmbientGlowDecoration()
 
@@ -80,11 +80,8 @@ fun VideoScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // مشغل الفيديو الاحترافي
-                selectedVideo.let { video ->
-                    key(video.videoId) {
-                        VideoPlayerSection(video.videoId, lifecycleOwner)
-                    }
+                key(selectedVideo.videoId) {
+                    VideoPlayerSection(selectedVideo.videoId, lifecycleOwner)
                 }
 
                 LazyColumn(
@@ -93,30 +90,27 @@ fun VideoScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     item {
-                        selectedVideo.let { video ->
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(
-                                    text = video.title,
-                                    color = Color.White,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Right,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text(
-                                    text = "جاري التشغيل الآن",
-                                    color = Color(0xFFA4C9FF),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Right,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = selectedVideo.title,
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                text = "جاري التشغيل الآن",
+                                color = Color(0xFFA4C9FF),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Right,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
 
                     item { ActionButtonsSection() }
-
                     item { LessonDescriptionSection() }
 
                     item {
@@ -149,7 +143,15 @@ fun VideoScreen(
 
 @Composable
 fun VideoPlayerSection(videoId: String, lifecycleOwner: androidx.lifecycle.LifecycleOwner) {
-    // استخراج الـ ID بشكل آمن
+    val context = LocalContext.current
+    val activity = context as? Activity
+    var isFullscreen by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isFullscreen) {
+        isFullscreen = false
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
+
     val cleanId = remember(videoId) {
         when {
             videoId.contains("v=") -> videoId.substringAfter("v=").substringBefore("&")
@@ -161,13 +163,15 @@ fun VideoPlayerSection(videoId: String, lifecycleOwner: androidx.lifecycle.Lifec
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .then(
+                if (isFullscreen) Modifier.fillMaxSize()
+                else Modifier.aspectRatio(16f / 9f)
+            )
             .background(Color.Black)
-            .shadow(20.dp)
     ) {
         AndroidView(
-            factory = { context ->
-                YouTubePlayerView(context).apply {
+            factory = { ctx ->
+                YouTubePlayerView(ctx).apply {
                     enableAutomaticInitialization = false
                     lifecycleOwner.lifecycle.addObserver(this)
 
@@ -178,11 +182,25 @@ fun VideoPlayerSection(videoId: String, lifecycleOwner: androidx.lifecycle.Lifec
                             }
                         }
                     }
+
                     val options = IFramePlayerOptions.Builder()
                         .controls(1)
                         .fullscreen(1)
                         .build()
+
                     initialize(listener, options)
+
+                    addFullscreenListener(object : FullscreenListener {
+                        override fun onEnterFullscreen(fullscreenView: View, exitFullscreen: () -> Unit) {
+                            isFullscreen = true
+                            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
+                        }
+
+                        override fun onExitFullscreen() {
+                            isFullscreen = false
+                            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        }
+                    })
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -210,15 +228,30 @@ fun VideoListItem(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(modifier = Modifier.size(100.dp, 60.dp).clip(RoundedCornerShape(8.dp))) {
-                AsyncImage(model = video.thumbnail, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                AsyncImage(
+                    model = video.thumbnail,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
                 if (isSelected) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
                     }
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text(text = video.title, color = Color.White, fontSize = 15.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, maxLines = 2, modifier = Modifier.weight(1f))
+            Text(
+                text = video.title,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -226,12 +259,22 @@ fun VideoListItem(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
 @Composable
 fun ActionButtonsSection() {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(onClick = { }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), shape = RoundedCornerShape(12.dp)) {
+        Button(
+            onClick = { },
+            modifier = Modifier.weight(1f).height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Icon(Icons.Default.Fullscreen, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("ملء الشاشة", fontWeight = FontWeight.Bold)
         }
-        Button(onClick = { }, modifier = Modifier.weight(1f).height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = TertiaryOrange), shape = RoundedCornerShape(12.dp)) {
+        Button(
+            onClick = { },
+            modifier = Modifier.weight(1f).height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = TertiaryOrange),
+            shape = RoundedCornerShape(12.dp)
+        ) {
             Icon(Icons.Default.Description, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text("تحميل PDF", fontWeight = FontWeight.Bold)
@@ -241,26 +284,67 @@ fun ActionButtonsSection() {
 
 @Composable
 fun LessonDescriptionSection() {
-    Column(modifier = Modifier.fillMaxWidth().background(SurfaceVariant, RoundedCornerShape(16.dp)).border(1.dp, OutlineVariant, RoundedCornerShape(16.dp)).padding(20.dp)) {
-        Text("وصف الدرس", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth())
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(SurfaceVariant, RoundedCornerShape(16.dp))
+            .border(1.dp, OutlineVariant, RoundedCornerShape(16.dp))
+            .padding(20.dp)
+    ) {
+        Text(
+            "وصف الدرس",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth()
+        )
         Spacer(modifier = Modifier.height(12.dp))
-        Text("في هذا الدرس، سنقوم بشرح المفاهيم الأساسية للتفاضل والتكامل وكيفية تطبيقها في المسائل الرياضية المعقدة بأسلوب مبسط.", color = Color.White.copy(alpha = 0.7f), fontSize = 15.sp, lineHeight = 24.sp, textAlign = TextAlign.Right, modifier = Modifier.fillMaxWidth())
+        Text(
+            "في هذا الدرس، سنقوم بشرح المفاهيم الأساسية للتفاضل والتكامل وكيفية تطبيقها في المسائل الرياضية المعقدة بأسلوب مبسط.",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 15.sp,
+            lineHeight = 24.sp,
+            textAlign = TextAlign.Right,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 @Composable
 fun CustomTopBar(title: String, onBack: () -> Unit) {
-    Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(Brush.verticalGradient(listOf(CinematicDark, Color.Transparent))).statusBarsPadding().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.size(40.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, modifier = Modifier.widthIn(max = 200.dp))
-                    Text("الأستاذ", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
-                }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .background(Brush.verticalGradient(listOf(CinematicDark, Color.Transparent)))
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.1f), CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier.widthIn(max = 250.dp)
+                )
+                Text("الأستاذ", color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
             }
         }
     }

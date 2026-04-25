@@ -1,5 +1,6 @@
 package com.example.digitallearningapp.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,13 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBack: () -> Unit) {
+fun ProfileScreen(onBack: () -> Unit, onLogout: () -> Unit) {
+    val context = LocalContext.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,6 +91,17 @@ fun ProfileScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+    Button(
+        onClick = {
+            context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                .edit().clear().apply()
+
+            onLogout()
+        },
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+    ) {
+        Text("تسجيل الخروج", color = Color.White)
     }
 }
 

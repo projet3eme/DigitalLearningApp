@@ -180,7 +180,7 @@ fun LoginScreen(
                                     .height(48.dp)
                                     .shadow(if (isSelected) 8.dp else 0.dp, RoundedCornerShape(16.dp), spotColor = Color(0xFF064E3B).copy(alpha = 0.2f))
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) Color(0xFF48BB78) else Color.White.copy(alpha = 0.1f))
+                                    .background(if (isSelected) Color(0xFF1A3A6B) else Color.White.copy(alpha = 0.1f))
                                     .clickable { onLevelSelected(level) }
                                     .then(
                                         if (!isSelected) Modifier.border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
@@ -212,7 +212,7 @@ fun LoginScreen(
                             .height(64.dp)
                             .shadow(20.dp, RoundedCornerShape(999.dp), spotColor = Color.Black.copy(alpha = 0.1f)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFormValid) Color(0xFF006D3C) else Color.Gray
+                            containerColor = if (isFormValid) Color(0xFF1A3A6B) else Color.Gray.copy(alpha = 0.5f)
                         ),
                         shape = RoundedCornerShape(999.dp)
                     ) {
