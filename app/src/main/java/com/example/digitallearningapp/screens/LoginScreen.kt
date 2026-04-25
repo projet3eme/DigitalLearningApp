@@ -1,5 +1,7 @@
 package com.example.digitallearningapp.screens
 
+import android.content.Context
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.foundation.Canvas
+import androidx.navigation.NavHostController
 
 @Composable
 fun LoginScreen(
@@ -39,14 +43,15 @@ fun LoginScreen(
     selectedLevel: String,
     onLevelSelected: (String) -> Unit,
     onLoginSuccess: () -> Unit,
-    onCreateAccountClick: () -> Unit
+    onCreateAccountClick: () -> Unit,
+    navController: NavHostController
 ) {
-    val isFormValid = name.isNotBlank() && selectedLevel.isNotBlank()
-    val primaryDark = Color(0xFF1A3A6B)
-    
-    // لإدارة حالة الضغط على الزر
+    val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+
+    val isFormValid = name.isNotBlank() && selectedLevel.isNotBlank()
+    val primaryDark = Color(0xFF1A3A6B)
 
     Box(
         modifier = Modifier
@@ -97,7 +102,7 @@ fun LoginScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.List,
+                        imageVector = Icons.AutoMirrored.Filled.List,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(60.dp)
@@ -199,6 +204,9 @@ fun LoginScreen(
                     Button(
                         onClick = {
                             if (isFormValid) {
+                                val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                                prefs.edit().putString("student_name", name).apply()
+                                prefs.edit().putString("student_level", selectedLevel).apply()
                                 onLoginSuccess()
                             }
                         },
@@ -222,10 +230,12 @@ fun LoginScreen(
                             fontWeight = FontWeight.Black
                         )
                     }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically) {
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "ليس لديك حساب؟ ",
                             color = Color.White.copy(alpha = 0.6f),

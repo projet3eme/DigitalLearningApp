@@ -15,7 +15,12 @@ import com.example.digitallearningapp.viewmodel.PlaylistViewModel
 import com.example.digitallearningapp.viewmodel.SubjectViewModel
 
 @Composable
-fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
+fun AppNavGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    isDarkTheme: Boolean = false,
+    onThemeChange: (Boolean) -> Unit = {}
+) {
     val viewModel: PlaylistViewModel = viewModel()
     val apiKey = "AIzaSyC3VzbxUXNJHp_B3xjuSFUpjr3FzWFLSBg"
     val context = LocalContext.current
@@ -48,7 +53,40 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
                         popUpTo("login_screen") { inclusive = true }
                     }
                 },
-                onCreateAccountClick = {}
+                onCreateAccountClick = {
+                    navController.navigate("register")
+                },
+                navController = navController
+            )
+        }
+
+        composable("register") {
+            RegisterScreen(
+                onRegisterSuccess = { studentName ->
+                    navController.navigate("welcome_screen/$studentName") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate("login_screen") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "welcome_screen/{name}",
+            arguments = listOf(navArgument("name") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val studentName = backStackEntry.arguments?.getString("name") ?: "الطالب"
+            WelcomeScreen(
+                studentName = studentName,
+                onTimeout = {
+                    navController.navigate("level_screen/$studentName") {
+                        popUpTo("welcome_screen") { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -96,16 +134,15 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
             val name     = backStackEntry.arguments?.getString("name") ?: ""
 
             val subjectViewModel: SubjectViewModel = viewModel()
-            
+
             LaunchedEffect(levelArg, yearArg) {
-                // إصلاح حاسم: توحيد مسميات المستويات والسنوات لتتطابق مع قاعدة البيانات مهما كان الإدخال
                 val dbLevel = when {
                     levelArg.contains("ابتد") -> "الابتدائي"
                     levelArg.contains("متوسط") -> "المتوسط"
                     levelArg.contains("ثانوي") -> "الثانوي"
                     else -> levelArg
                 }
-                
+
                 val dbYear = when {
                     yearArg.contains("الأولى") || yearArg.contains("1") -> "السنة الأولى"
                     yearArg.contains("الثانية") || yearArg.contains("2") -> "السنة الثانية"
@@ -114,7 +151,7 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
                     yearArg.contains("الخامسة") || yearArg.contains("5") -> "السنة الخامسة"
                     else -> yearArg
                 }
-                
+
                 subjectViewModel.fetchSubjects(dbLevel, dbYear)
             }
 
@@ -141,7 +178,7 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
             val playlistId = java.net.URLDecoder.decode(
                 backStackEntry.arguments?.getString("playlistId") ?: "", "UTF-8"
             )
-            val name       = backStackEntry.arguments?.getString("name") ?: ""
+            val name = backStackEntry.arguments?.getString("name") ?: ""
 
             LaunchedEffect(playlistId) {
                 if (playlistId.isNotEmpty()) {
@@ -168,6 +205,10 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
         ) { backStackEntry ->
             val videoId = backStackEntry.arguments?.getString("videoId") ?: ""
 
+            // حفظ آخر فيديو شاهده الطالب
+            prefs.edit().putString("last_watched_video_id", videoId).apply()
+            prefs.edit().putLong("last_watched_timestamp", System.currentTimeMillis()).apply()
+
             VideoScreen(
                 list = viewModel.videos.value,
                 initialVideoId = videoId,
@@ -176,14 +217,26 @@ fun AppNavGraph(navController: NavHostController, modifier: Modifier = Modifier)
             )
         }
 
+        composable("my_lessons") {
+            MyLessonsScreen(
+                onBack = { navController.popBackStack() },
+                onVideoClick = { videoId, videoTitle ->
+                    navController.navigate("video_bento/$videoId")
+                }
+            )
+        }
+
         composable("profile") {
             ProfileScreen(
                 onBack = { navController.popBackStack() },
                 onLogout = {
+                    prefs.edit().clear().apply()
                     navController.navigate("login_screen") {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                isDarkTheme = isDarkTheme,
+                onThemeChange = onThemeChange
             )
         }
     }

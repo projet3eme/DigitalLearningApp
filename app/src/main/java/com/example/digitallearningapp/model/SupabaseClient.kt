@@ -1,7 +1,9 @@
 package com.example.digitallearningapp.network
 
+import com.example.digitallearningapp.model.Student
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.json.Json
 
 object SupabaseClient {
@@ -13,6 +15,31 @@ object SupabaseClient {
             serializer = io.github.jan.supabase.serializer.KotlinXSerializer(
                 Json { ignoreUnknownKeys = true }
             )
+        }
+    }
+
+    suspend fun saveStudent(name: String, level: String, year: String): Boolean {
+        return try {
+            client.postgrest["students"].insert(
+                mapOf(
+                    "name" to name,
+                    "level" to level,
+                    "year" to year
+                )
+            )
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun getStudents(): List<Student> {
+        return try {
+            client.postgrest["students"]
+                .select()
+                .decodeList<Student>()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }
