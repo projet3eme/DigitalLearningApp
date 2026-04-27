@@ -21,9 +21,7 @@ class PlaylistViewModel : ViewModel() {
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
 
-    /**
-     * جلب الفيديوهات باستخدام معرف قائمة التشغيل (Playlist Items) بشكل مباشر.
-     */
+
     fun fetchVideos(playlistId: String, apiKey: String) {
         // Log message as requested for debugging
         Log.d("DEBUG_YT", "Fetching playlist items for ID: $playlistId")
@@ -33,8 +31,7 @@ class PlaylistViewModel : ViewModel() {
             _errorMessage.value = null
 
             try {
-                // استدعاء playlistItems().list("snippet") عبر Retrofit
-                // تم ضبط maxResults إلى 50 كما هو مطلوب
+
                 val response = RetrofitInstance.api.getVideosFromPlaylist(
                     apiKey = apiKey,
                     playlistId = playlistId,
@@ -45,7 +42,7 @@ class PlaylistViewModel : ViewModel() {
                 Log.d("DEBUG_YT", "Items found: ${response.items.size}")
 
                 val fetchedVideos = response.items.mapNotNull { item ->
-                    // استخراج videoId من resourceId داخل الـ snippet
+
                     val vId = item.snippet.resourceId?.videoId
                     if (vId != null) {
                         Video(

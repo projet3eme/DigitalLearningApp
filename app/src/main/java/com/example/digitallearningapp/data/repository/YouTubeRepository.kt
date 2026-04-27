@@ -2,10 +2,11 @@ package com.example.digitallearningapp.data.repository
 
 import android.util.Log
 import com.example.digitallearningapp.model.Subject
+import com.example.digitallearningapp.model.SupabaseClient
 import com.example.digitallearningapp.model.Video
 import com.example.digitallearningapp.network.YouTubeApi
 import com.example.digitallearningapp.network.RetrofitInstance
-import com.example.digitallearningapp.network.SupabaseClient
+
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

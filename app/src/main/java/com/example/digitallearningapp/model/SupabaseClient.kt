@@ -1,6 +1,7 @@
-package com.example.digitallearningapp.network
+package com.example.digitallearningapp.model
 
 import com.example.digitallearningapp.model.Student
+import com.example.digitallearningapp.model.User
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -40,6 +41,40 @@ object SupabaseClient {
                 .decodeList<Student>()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    // دالة تسجيل الدخول
+    suspend fun loginUser(email: String, password: String): User? {
+        return try {
+            // تصحيح: نقل الفلاتر لتكون داخل كتلة البناء (DSL) الخاصة بـ select
+            val result = client.postgrest["users"].select {
+                filter {
+                    eq("email", email)
+                    eq("password", password)
+                }
+            }.decodeList<User>()
+            
+            result.firstOrNull()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun registerUser(email: String, password: String, name: String): Boolean {
+        return try {
+            client.postgrest["users"].insert(
+                mapOf(
+                    "email" to email,
+                    "password" to password,
+                    "name" to name
+                )
+            )
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
     }
 }

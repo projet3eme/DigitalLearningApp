@@ -1,19 +1,16 @@
 package com.example.digitallearningapp
 
-import android.content.Context.MODE_PRIVATE
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -21,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.digitallearningapp.ui.navigation.AppNavGraph
+import com.example.digitallearningapp.utils.FirstLaunchManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +33,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DigitalLearningApp() {
     var isDarkTheme by remember { mutableStateOf(false) }
-    val context = LocalContext.current // إضافة الـ context هنا لحل المشكلة
+    val context = LocalContext.current
+    val firstLaunchManager = remember { FirstLaunchManager(context) }
+    val isFirstLaunch = remember { firstLaunchManager.isFirstLaunch() }
+
+
 
     MaterialTheme(
         colorScheme = if (isDarkTheme) DarkColorScheme else LightColorScheme
@@ -45,7 +47,11 @@ fun DigitalLearningApp() {
         val currentRoute = navBackStackEntry?.destination?.route
 
         val hideBottomBar = currentRoute in listOf(
-            "splash", "login_screen", "video_bento/{videoId}", "register", "welcome_screen/{name}"
+            "splash",
+            "login_screen",
+            "video_bento/{videoId}",
+            "register",
+            "welcome_screen/{name}"
         )
 
         Scaffold(
@@ -58,8 +64,7 @@ fun DigitalLearningApp() {
                         NavigationBarItem(
                             selected = currentRoute?.startsWith("level_screen") == true,
                             onClick = {
-                                // استخدام الـ context المعرف أعلاه
-                                val prefs = context.getSharedPreferences("user_prefs", MODE_PRIVATE)
+                                val prefs = context.getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE)
                                 val name = prefs.getString("student_name", "") ?: ""
                                 navController.navigate("level_screen/$name") {
                                     popUpTo(0) { inclusive = false }
@@ -81,7 +86,7 @@ fun DigitalLearningApp() {
                                     popUpTo(0) { inclusive = false }
                                 }
                             },
-                            icon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null) },
+                            icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
                             label = { Text("دروسي") },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color(0xFF2C5282),
@@ -113,7 +118,8 @@ fun DigitalLearningApp() {
                 navController = navController,
                 modifier = Modifier.padding(innerPadding),
                 isDarkTheme = isDarkTheme,
-                onThemeChange = { isDarkTheme = it }
+                onThemeChange = { isDarkTheme = it },
+                isFirstLaunch = isFirstLaunch
             )
         }
     }

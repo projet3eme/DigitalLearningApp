@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.digitallearningapp.screens.*
+import com.example.digitallearningapp.utils.FirstLaunchManager
 import com.example.digitallearningapp.viewmodel.PlaylistViewModel
 import com.example.digitallearningapp.viewmodel.SubjectViewModel
 
@@ -19,7 +20,8 @@ fun AppNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
-    onThemeChange: (Boolean) -> Unit = {}
+    onThemeChange: (Boolean) -> Unit = {},
+    isFirstLaunch: Boolean = true
 ) {
     val viewModel: PlaylistViewModel = viewModel()
     val apiKey = "AIzaSyC3VzbxUXNJHp_B3xjuSFUpjr3FzWFLSBg"
@@ -27,36 +29,38 @@ fun AppNavGraph(
     val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
     val savedName = prefs.getString("student_name", "") ?: ""
-    val startDest = if (savedName.isNotEmpty()) "level_screen/$savedName" else "splash"
+
+    val startDestination = if (isFirstLaunch) "splash" else if (savedName.isNotEmpty()) "level_screen/$savedName" else "login_screen"
 
     NavHost(
         navController = navController,
-        startDestination = startDest,
+        startDestination = startDestination,
         modifier = modifier
     ) {
+
         composable("splash") {
-            SplashScreen(onClick = { navController.navigate("login_screen") })
+            val firstLaunchManager = remember { FirstLaunchManager(context) }
+            SplashScreen(
+                onClick = {
+                    firstLaunchManager.setLaunched()
+                    navController.navigate("login_screen") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                },
+                firstLaunchManager = firstLaunchManager
+            )
         }
 
         composable("login_screen") {
-            var name by remember { mutableStateOf("") }
-            var selectedLevel by remember { mutableStateOf("") }
-
             LoginScreen(
-                name = name,
-                onNameChange = { name = it },
-                selectedLevel = selectedLevel,
-                onLevelSelected = { selectedLevel = it },
+                navController = navController,
                 onLoginSuccess = {
-                    prefs.edit().putString("student_name", name).apply()
+                    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                    val name = prefs.getString("student_name", "") ?: ""
                     navController.navigate("level_screen/$name") {
                         popUpTo("login_screen") { inclusive = true }
                     }
-                },
-                onCreateAccountClick = {
-                    navController.navigate("register")
-                },
-                navController = navController
+                }
             )
         }
 

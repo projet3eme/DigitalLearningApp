@@ -17,10 +17,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.digitallearningapp.utils.FirstLaunchManager
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(onClick: () -> Unit) {
+fun SplashScreen(
+    onClick: () -> Unit,
+    firstLaunchManager: FirstLaunchManager
+) {
     LaunchedEffect(Unit) {
         delay(2000)
         onClick()

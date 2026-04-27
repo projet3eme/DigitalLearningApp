@@ -12,8 +12,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,27 +31,33 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.navigation.NavHostController
+import com.example.digitallearningapp.model.SupabaseClient
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    name: String,
-    onNameChange: (String) -> Unit,
-    selectedLevel: String,
-    onLevelSelected: (String) -> Unit,
-    onLoginSuccess: () -> Unit,
-    onCreateAccountClick: () -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val isFormValid = name.isNotBlank() && selectedLevel.isNotBlank()
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showPassword by remember { mutableStateOf(false) } // التحكم في إظهار كلمة المرور
+
+    val isFormValid = email.isNotBlank() && password.isNotBlank()
     val primaryDark = Color(0xFF1A3A6B)
 
     Box(
@@ -121,9 +128,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(32.dp)) {
+
+                // حقل البريد الإلكتروني
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "الاسم الكامل",
+                        text = "البريد الإلكتروني",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -139,9 +148,9 @@ fun LoginScreen(
                             .padding(horizontal = 24.dp),
                         contentAlignment = Alignment.CenterEnd
                     ) {
-                        if (name.isEmpty()) {
+                        if (email.isEmpty()) {
                             Text(
-                                text = "أدخل اسمك هنا",
+                                text = "example@email.com",
                                 color = primaryDark.copy(alpha = 0.4f),
                                 fontSize = 16.sp,
                                 modifier = Modifier.fillMaxWidth(),
@@ -149,8 +158,8 @@ fun LoginScreen(
                             )
                         }
                         BasicTextField(
-                            value = name,
-                            onValueChange = onNameChange,
+                            value = email,
+                            onValueChange = { email = it },
                             modifier = Modifier.fillMaxWidth(),
                             textStyle = TextStyle(
                                 color = primaryDark,
@@ -163,51 +172,99 @@ fun LoginScreen(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // حقل كلمة المرور مع أيقونة العين
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "اختر المستوى الدراسي",
+                        text = "كلمة المرور",
                         color = Color.White.copy(alpha = 0.9f),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 4.dp),
                         textAlign = TextAlign.Right
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.CenterEnd
                     ) {
-                        val levels = listOf("الابتدائي", "المتوسط", "الثانوي")
-                        levels.forEach { level ->
-                            val isSelected = selectedLevel == level
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .shadow(if (isSelected) 8.dp else 4.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(if (isSelected) primaryDark else Color.White)
-                                    .clickable { onLevelSelected(level) },
-                                contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            BasicTextField(
+                                value = password,
+                                onValueChange = { password = it },
+                                modifier = Modifier.weight(1f),
+                                textStyle = TextStyle(
+                                    color = primaryDark,
+                                    fontSize = 16.sp,
+                                    textAlign = TextAlign.Right
+                                ),
+                                cursorBrush = SolidColor(primaryDark),
+                                singleLine = true,
+                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation()
+                            )
+
+                            // أيقونة إظهار/إخفاء
+                            IconButton(
+                                onClick = { showPassword = !showPassword },
+                                modifier = Modifier.size(40.dp)
                             ) {
-                                Text(
-                                    text = level,
-                                    color = if (isSelected) Color.White else primaryDark,
-                                    fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (showPassword) "إخفاء كلمة المرور" else "إظهار كلمة المرور",
+                                    tint = primaryDark.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
+
+                        if (password.isEmpty()) {
+                            Text(
+                                text = "********",
+                                color = primaryDark.copy(alpha = 0.4f),
+                                fontSize = 16.sp,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Right
+                            )
+                        }
                     }
+                }
+
+                // رسالة الخطأ
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage!!,
+                        color = Color(0xFFFF6B6B),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                 }
 
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(
                         onClick = {
                             if (isFormValid) {
-                                val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-                                prefs.edit().putString("student_name", name).apply()
-                                prefs.edit().putString("student_level", selectedLevel).apply()
-                                onLoginSuccess()
+                                isLoading = true
+                                coroutineScope.launch {
+                                    val user = SupabaseClient.loginUser(email, password)
+                                    if (user != null) {
+                                        val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                                        prefs.edit().putString("student_name", user.name).apply()
+                                        prefs.edit().putString("student_level", user.level ?: "").apply()
+                                        prefs.edit().putString("student_year", user.year ?: "").apply()
+                                        prefs.edit().putString("user_email", user.email).apply()
+                                        onLoginSuccess()
+                                    } else {
+                                        errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+                                    }
+                                    isLoading = false
+                                }
                             }
                         },
                         modifier = Modifier
@@ -222,13 +279,13 @@ fun LoginScreen(
                             disabledContentColor = primaryDark.copy(alpha = 0.5f)
                         ),
                         shape = RoundedCornerShape(999.dp),
-                        enabled = isFormValid
+                        enabled = isFormValid && !isLoading
                     ) {
-                        Text(
-                            text = "تسجيل الدخول",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = primaryDark)
+                        } else {
+                            Text("تسجيل الدخول", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                        }
                     }
 
                     Row(
@@ -246,9 +303,8 @@ fun LoginScreen(
                             text = "إنشاء حساب جديد",
                             color = Color.White,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clickable { onCreateAccountClick() }.padding(horizontal = 4.dp),
-                            textAlign = TextAlign.Center
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { navController.navigate("register") }
                         )
                     }
                 }
