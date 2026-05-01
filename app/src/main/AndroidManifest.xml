@@ -13,12 +13,13 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:theme="@style/Theme.DigitalLearningApp">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:screenOrientation="portrait"
+            android:screenOrientation="user"
             android:label="@string/app_name"
             android:theme="@style/Theme.DigitalLearningApp">
             <intent-filter>
