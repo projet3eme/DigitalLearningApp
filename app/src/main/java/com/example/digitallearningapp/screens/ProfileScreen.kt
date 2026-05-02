@@ -2,6 +2,7 @@ package com.example.digitallearningapp.screens
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -39,22 +39,20 @@ fun ProfileScreen(
     onThemeChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    val prefs = remember { context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE) }
 
     val studentName = prefs.getString("student_name", "الطالب") ?: "الطالب"
     val studentEmail = prefs.getString("user_email", "example@email.com") ?: "example@email.com"
 
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
-    val savedImagePath = prefs.getString("profile_image", null)
-
-    LaunchedEffect(savedImagePath) {
-        if (savedImagePath != null) {
-            profileImageUri = Uri.parse(savedImagePath)
-        }
+    // حالة الصورة الشخصية - استرجاع المسار من التفضيلات
+    var profileImageUri by remember { 
+        mutableStateOf(prefs.getString("profile_image", null)?.let { Uri.parse(it) }) 
     }
 
+    // إعداد أداة اختيار الصور من المعرض
     val pickImage = rememberImagePicker { uri ->
         profileImageUri = uri
+        // حفظ المسار الجديد لضمان بقائه متاحاً
         prefs.edit().putString("profile_image", uri.toString()).apply()
     }
 
@@ -77,95 +75,105 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 16.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // صورة البروفايل (بدون أيقونة بداخلها)
+            // قسم الصورة الشخصية مع زر تعديل عائم
             Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .clickable { pickImage() }
-                    .background(Brush.verticalGradient(listOf(Color(0xFF4A90E2), Color(0xFF2C5282)))),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.size(140.dp),
+                contentAlignment = Alignment.BottomEnd
             ) {
-                if (profileImageUri != null) {
-                    AsyncImage(
-                        model = profileImageUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(60.dp),
-                        tint = Color.White
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape)
+                        .background(Brush.verticalGradient(listOf(Color(0xFF4A90E2), Color(0xFF2C5282))))
+                        .border(4.dp, if (isDarkTheme) Color(0xFF1E1E1E) else Color.White, CircleShape)
+                        .clickable { pickImage() }, // الضغط على الصورة يفتح المعرض
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (profileImageUri != null) {
+                        AsyncImage(
+                            model = profileImageUri,
+                            contentDescription = "صورة الملف الشخصي",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                // زر صغير فوق الصورة لفتح المعرض
+                Surface(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .clickable { pickImage() },
+                    color = Color(0xFF2C5282),
+                    shadowElevation = 6.dp,
+                    border = BorderStroke(2.dp, Color.White)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
 
-            // أيقونة تعديل الصورة تحت الصورة (خارجها)
-            Row(
-                modifier = Modifier
-                    .padding(top = 12.dp)
-                    .clickable { pickImage() },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "تعديل الصورة",
-                    modifier = Modifier.size(18.dp),
-                    tint = if (isDarkTheme) Color(0xFF4A90E2) else Color(0xFF2C5282)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "تغيير الصورة",
-                    fontSize = 13.sp,
-                    color = if (isDarkTheme) Color(0xFF4A90E2) else Color(0xFF2C5282),
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // الاسم تحت الصورة
+            // نص "تغيير الصورة" القابل للضغط
             Text(
-                text = studentName,
-                fontSize = 24.sp,
+                text = "تغيير صورة الملف الشخصي",
+                fontSize = 14.sp,
+                color = if (isDarkTheme) Color(0xFF4A90E2) else Color(0xFF2C5282),
                 fontWeight = FontWeight.Bold,
-                color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B),
-                textAlign = TextAlign.Center
+                modifier = Modifier.clickable { pickImage() }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // بطاقة المعلومات
+            Text(
+                text = studentName,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // بطاقة المعلومات الشخصية
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White),
                 shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(4.dp)
+                elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    InfoRow("📧 البريد الإلكتروني", studentEmail, isDarkTheme)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    InfoRow("📆 تاريخ الانضمام", "2026", isDarkTheme)
+                    ProfileInfoRow("📧 البريد الإلكتروني", studentEmail, isDarkTheme)
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        thickness = 0.5.dp,
+                        color = Color.LightGray.copy(alpha = 0.2f)
+                    )
+                    ProfileInfoRow("📆 تاريخ الانضمام", "2026", isDarkTheme)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // زر الوضع المظلم
+            // إعدادات المظهر
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = if (isDarkTheme) Color(0xFF1E1E1E) else Color.White),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Row(
@@ -173,7 +181,12 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("🌙 الوضع المظلم", fontSize = 16.sp, color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B))
+                    Text(
+                        "🌙 الوضع المظلم",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B)
+                    )
                     Switch(
                         checked = isDarkTheme,
                         onCheckedChange = { onThemeChange(it) },
@@ -185,39 +198,38 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // زر تسجيل الخروج
+            // زر تسجيل الخروج - تم تعديله للون الأزرق بناءً على طلبك
             Button(
                 onClick = {
                     prefs.edit().clear().apply()
                     onLogout()
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2C5282),
-                    contentColor = Color.White
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2C5282)),
                 shape = RoundedCornerShape(12.dp),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
-                Text("تسجيل الخروج", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text("تسجيل الخروج", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
 @Composable
-private fun InfoRow(label: String, value: String, isDarkTheme: Boolean) {
+fun ProfileInfoRow(label: String, value: String, isDarkTheme: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = if (isDarkTheme) Color(0xFFAAAAAA) else Color(0xFF888888), fontSize = 14.sp)
-        Text(value, fontWeight = FontWeight.Medium, color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B), fontSize = 14.sp)
+        Text(label, color = Color.Gray, fontSize = 14.sp)
+        Text(
+            value,
+            fontWeight = FontWeight.Bold,
+            color = if (isDarkTheme) Color.White else Color(0xFF1A3A6B),
+            fontSize = 14.sp
+        )
     }
 }

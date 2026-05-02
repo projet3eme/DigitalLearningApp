@@ -1,9 +1,8 @@
 package com.example.digitallearningapp.screens
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
-import android.util.Log
-import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -36,6 +35,8 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 @Composable
 fun VideoScreen(
@@ -58,6 +59,28 @@ fun VideoScreen(
         mutableStateOf(safeList.find { it.videoId == initialVideoId } ?: safeList.firstOrNull())
     }
     var isFullscreen by remember { mutableStateOf(false) }
+
+    // حفظ الفيديو في قائمة الدروس المشاهدة عند التشغيل
+    LaunchedEffect(selectedVideo) {
+        selectedVideo?.let { video ->
+            if (video.title == "جاري التحميل...") return@let
+            
+            val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+            val json = Json { ignoreUnknownKeys = true }
+            val watchedJson = prefs.getString("watched_videos", "[]") ?: "[]"
+            try {
+                val watchedList = json.decodeFromString<List<Video>>(watchedJson).toMutableList()
+                // إزالة الفيديو إذا كان موجوداً مسبقاً لإضافته في المقدمة (الأحدث أولاً)
+                watchedList.removeAll { it.videoId == video.videoId }
+                watchedList.add(0, video)
+                // الاحتفاظ بآخر 20 فيديو فقط
+                val limitedList = watchedList.take(20)
+                prefs.edit().putString("watched_videos", json.encodeToString(limitedList)).apply()
+            } catch (e: Exception) {
+                prefs.edit().putString("watched_videos", json.encodeToString(listOf(video))).apply()
+            }
+        }
+    }
 
     BackHandler(enabled = isFullscreen) {
         isFullscreen = false
@@ -94,7 +117,6 @@ fun VideoScreen(
             }
 
             if (!isFullscreen) {
-                // زر ملء الشاشة أسفل الفيديو مباشرة
                 Button(
                     onClick = {
                         isFullscreen = true
@@ -151,6 +173,7 @@ fun VideoScreen(
         }
     }
 }
+
 @Composable
 fun SupabaseVideoPlayer(videoUrl: String) {
     val context = LocalContext.current
@@ -176,6 +199,7 @@ fun SupabaseVideoPlayer(videoUrl: String) {
         modifier = Modifier.fillMaxSize()
     )
 }
+
 @Composable
 fun ProfessionalTrustedPlayer(
     videoId: String,
@@ -187,12 +211,9 @@ fun ProfessionalTrustedPlayer(
         return
     }
     val context = LocalContext.current
-
-
     val isSupabaseVideo = videoId.startsWith("http")
 
     if (isSupabaseVideo) {
-
         val exoPlayer = remember(videoId) {
             androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
                 setMediaItem(androidx.media3.common.MediaItem.fromUri(videoId))
@@ -215,7 +236,6 @@ fun ProfessionalTrustedPlayer(
             modifier = Modifier.fillMaxSize()
         )
     } else {
-
         AndroidView(
             factory = { ctx ->
                 YouTubePlayerView(ctx).apply {
@@ -245,6 +265,7 @@ fun ProfessionalTrustedPlayer(
         )
     }
 }
+
 @Composable
 fun LessonRow(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
     Surface(
@@ -290,5 +311,4 @@ fun LessonRow(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
             }
         }
     }
-
 }
