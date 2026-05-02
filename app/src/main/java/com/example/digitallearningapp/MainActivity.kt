@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,10 +19,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.digitallearningapp.ui.navigation.AppNavGraph
 import com.example.digitallearningapp.utils.FirstLaunchManager
+import com.example.digitallearningapp.workers.VideoSyncWorker
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        VideoSyncWorker.schedule(this)
         enableEdgeToEdge()
         setContent {
             DigitalLearningApp()
@@ -36,8 +38,6 @@ fun DigitalLearningApp() {
     val context = LocalContext.current
     val firstLaunchManager = remember { FirstLaunchManager(context) }
     val isFirstLaunch = remember { firstLaunchManager.isFirstLaunch() }
-
-
 
     MaterialTheme(
         colorScheme = if (isDarkTheme) DarkColorScheme else LightColorScheme
@@ -86,7 +86,7 @@ fun DigitalLearningApp() {
                                     popUpTo(0) { inclusive = false }
                                 }
                             },
-                            icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
+                            icon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null) },
                             label = { Text("دروسي") },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color(0xFF2C5282),

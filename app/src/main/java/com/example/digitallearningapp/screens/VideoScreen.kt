@@ -151,56 +151,100 @@ fun VideoScreen(
         }
     }
 }
+@Composable
+fun SupabaseVideoPlayer(videoUrl: String) {
+    val context = LocalContext.current
+    val exoPlayer = remember(videoUrl) {
+        androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
+            setMediaItem(androidx.media3.common.MediaItem.fromUri(videoUrl))
+            prepare()
+            playWhenReady = true
+        }
+    }
 
+    DisposableEffect(videoUrl) {
+        onDispose { exoPlayer.release() }
+    }
+
+    AndroidView(
+        factory = {
+            androidx.media3.ui.PlayerView(it).apply {
+                player = exoPlayer
+                useController = true
+            }
+        },
+        modifier = Modifier.fillMaxSize()
+    )
+}
 @Composable
 fun ProfessionalTrustedPlayer(
     videoId: String,
     lifecycleOwner: LifecycleOwner,
     onFullscreenChange: (Boolean) -> Unit
 ) {
-    AndroidView(
-        factory = { ctx ->
-            YouTubePlayerView(ctx).apply {
-                enableAutomaticInitialization = false
-                lifecycleOwner.lifecycle.addObserver(this)
+    if (videoId.startsWith("https://")) {
+        SupabaseVideoPlayer(videoUrl = videoId)
+        return
+    }
+    val context = LocalContext.current
 
-                val options = IFramePlayerOptions.Builder()
-                    .controls(1) 
-                    .fullscreen(1)
-                    .rel(0)
-                    .ivLoadPolicy(3)
-                    .ccLoadPolicy(1)
-                    .origin("https://www.youtube-nocookie.com")
-                    .build()
 
-                initialize(object : AbstractYouTubePlayerListener() {
-                    override fun onReady(youTubePlayer: YouTubePlayer) {
-                        youTubePlayer.cueVideo(videoId, 0f)
-                        postDelayed({
-                            youTubePlayer.play()
-                        }, 500)
-                        Log.d("PLAYER_DEBUG", "Trusted Handshake for video: $videoId")
-                    }
-                }, options)
+    val isSupabaseVideo = videoId.startsWith("http")
 
-                addFullscreenListener(object : com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener {
-                    override fun onEnterFullscreen(fullscreenView: View, exitFullscreen: () -> Unit) {
-                        onFullscreenChange(true)
-                    }
-                    override fun onExitFullscreen() {
-                        onFullscreenChange(false)
-                    }
-                })
+    if (isSupabaseVideo) {
+
+        val exoPlayer = remember(videoId) {
+            androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
+                setMediaItem(androidx.media3.common.MediaItem.fromUri(videoId))
+                prepare()
+                playWhenReady = true
             }
-        },
-        modifier = Modifier.fillMaxSize(),
-        onRelease = { view ->
-            view.release()
-            lifecycleOwner.lifecycle.removeObserver(view)
         }
-    )
-}
 
+        DisposableEffect(videoId) {
+            onDispose { exoPlayer.release() }
+        }
+
+        AndroidView(
+            factory = {
+                androidx.media3.ui.PlayerView(it).apply {
+                    player = exoPlayer
+                    useController = true
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+
+        AndroidView(
+            factory = { ctx ->
+                YouTubePlayerView(ctx).apply {
+                    enableAutomaticInitialization = false
+                    lifecycleOwner.lifecycle.addObserver(this)
+                    val options = IFramePlayerOptions.Builder()
+                        .controls(1)
+                        .fullscreen(0)
+                        .rel(0)
+                        .ivLoadPolicy(3)
+                        .ccLoadPolicy(0)
+                        .origin("https://www.youtube-nocookie.com")
+                        .build()
+                    initialize(object : AbstractYouTubePlayerListener() {
+                        override fun onReady(youTubePlayer: YouTubePlayer) {
+                            youTubePlayer.cueVideo(videoId, 0f)
+                            postDelayed({ youTubePlayer.play() }, 500)
+                        }
+                    }, options)
+                }
+            },
+            modifier = Modifier.fillMaxSize(),
+            onRelease = { view ->
+                view.release()
+                lifecycleOwner.lifecycle.removeObserver(view)
+            }
+        )
+    }
+}
 @Composable
 fun LessonRow(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
     Surface(
@@ -246,4 +290,5 @@ fun LessonRow(video: Video, isSelected: Boolean, onSelect: () -> Unit) {
             }
         }
     }
+
 }

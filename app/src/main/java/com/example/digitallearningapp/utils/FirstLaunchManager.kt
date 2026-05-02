@@ -2,15 +2,10 @@ package com.example.digitallearningapp.utils
 
 import android.content.Context
 
-class FirstLaunchManager(context: Context) {
+class FirstLaunchManager(private val context: Context) {
     private val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    private val FIRST_LAUNCH_KEY = "is_first_launch"
 
-    fun isFirstLaunch(): Boolean {
-        return prefs.getBoolean(FIRST_LAUNCH_KEY, true)
-    }
+    fun isFirstLaunch(): Boolean = prefs.getBoolean("is_first_launch", true)
 
-    fun setLaunched() {
-        prefs.edit().putBoolean(FIRST_LAUNCH_KEY, false).apply()
-    }
+    fun setLaunched() = prefs.edit().putBoolean("is_first_launch", false).apply()
 }

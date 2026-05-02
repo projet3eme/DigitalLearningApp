@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     onClick: () -> Unit,
-    firstLaunchManager: FirstLaunchManager
+    firstLaunchManager: FirstLaunchManager? = null
 ) {
     LaunchedEffect(Unit) {
         delay(2000)
