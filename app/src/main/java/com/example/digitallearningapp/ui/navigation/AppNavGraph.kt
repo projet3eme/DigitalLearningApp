@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.edit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -23,10 +24,9 @@ fun AppNavGraph(
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = false,
     onThemeChange: (Boolean) -> Unit = {},
-    isFirstLaunch: Boolean = true
+    @Suppress("UNUSED_PARAMETER") isFirstLaunch: Boolean = true
 ) {
     val playlistViewModel: PlaylistViewModel = viewModel()
-    val apiKey = "AIzaSyC3VzbxUXNJHp_B3xjuSFUpjr3FzWFLSBg"
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
     val firstLaunchManager = remember { FirstLaunchManager(context) }
@@ -65,7 +65,7 @@ fun AppNavGraph(
         composable("register") {
             RegisterScreen(
                 onRegisterSuccess = { studentName ->
-                    prefs.edit().putString("student_name", studentName).apply()
+                    prefs.edit { putString("student_name", studentName) }
                     navController.navigate("welcome_screen/$studentName") {
                         popUpTo("register") { inclusive = true }
                     }
@@ -138,21 +138,7 @@ fun AppNavGraph(
             val subjectViewModel: SubjectViewModel = viewModel()
 
             LaunchedEffect(levelArg, yearArg) {
-                val cleanLevel = when {
-                    levelArg.contains("ابتد") -> "ابتدائي"
-                    levelArg.contains("متوسط") -> "متوسط"
-                    levelArg.contains("ثانو") -> "ثانوي"
-                    else -> levelArg
-                }
-                val cleanYear = when {
-                    yearArg.contains("الأولى") -> "الأولى"
-                    yearArg.contains("الثانية") -> "الثانية"
-                    yearArg.contains("الثالثة") -> "الثالثة"
-                    yearArg.contains("الرابعة") -> "الرابعة"
-                    yearArg.contains("الخامسة") -> "الخامسة"
-                    else -> yearArg
-                }
-                subjectViewModel.fetchSubjects(cleanLevel, cleanYear)
+                subjectViewModel.fetchSubjects(levelArg, yearArg)
             }
 
             SubjectScreen(
@@ -180,30 +166,17 @@ fun AppNavGraph(
             )
             val name = backStackEntry.arguments?.getString("name") ?: ""
 
-            LaunchedEffect(playlistId) {
-                if (playlistId.isNotEmpty()) {
-                    playlistViewModel.fetchVideos(playlistId, apiKey)
-                }
-            }
-
             PlaylistScreen(
                 studentName = name,
                 channelId = playlistId,
-                videos = playlistViewModel.videos.value,
-                isLoading = playlistViewModel.isLoading.value,
-                errorMessage = playlistViewModel.errorMessage.value,
+                navController = navController,
                 onBackClick = { navController.popBackStack() },
-                onProfileClick = { navController.navigate("profile") },
-                onVideoClick = { videoId ->
-                    val encodedId = URLEncoder.encode(videoId, "UTF-8")
-                    navController.navigate("video_web/$encodedId")
-                },
-                onRetryClick = { id -> playlistViewModel.fetchVideos(id, apiKey) }
+                playlistViewModel = playlistViewModel
             )
         }
 
         composable(
-            route = "video_web/{videoId}",
+            route = "video_screen/{videoId}",
             arguments = listOf(navArgument("videoId") { type = NavType.StringType })
         ) { backStackEntry ->
             val videoId = URLDecoder.decode(
@@ -222,7 +195,7 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() },
                 onVideoClick = { videoId, _ ->
                     val encodedId = URLEncoder.encode(videoId, "UTF-8")
-                    navController.navigate("video_web/$encodedId")
+                    navController.navigate("video_screen/$encodedId")
                 }
             )
         }
@@ -231,7 +204,7 @@ fun AppNavGraph(
             ProfileScreen(
                 onBack = { navController.popBackStack() },
                 onLogout = {
-                    prefs.edit().clear().apply()
+                    prefs.edit { clear() }
                     navController.navigate("login_screen") {
                         popUpTo(0) { inclusive = true }
                     }

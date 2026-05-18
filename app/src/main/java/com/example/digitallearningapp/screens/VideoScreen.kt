@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
@@ -75,9 +77,13 @@ fun VideoScreen(
                 watchedList.add(0, video)
                 // الاحتفاظ بآخر 20 فيديو فقط
                 val limitedList = watchedList.take(20)
-                prefs.edit().putString("watched_videos", json.encodeToString(limitedList)).apply()
-            } catch (e: Exception) {
-                prefs.edit().putString("watched_videos", json.encodeToString(listOf(video))).apply()
+                prefs.edit {
+                    putString("watched_videos", json.encodeToString(limitedList))
+                }
+            } catch (_: Exception) {
+                prefs.edit {
+                    putString("watched_videos", json.encodeToString(listOf(video)))
+                }
             }
         }
     }
@@ -179,7 +185,7 @@ fun SupabaseVideoPlayer(videoUrl: String) {
     val context = LocalContext.current
     val exoPlayer = remember(videoUrl) {
         androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
-            setMediaItem(androidx.media3.common.MediaItem.fromUri(videoUrl))
+            setMediaItem(androidx.media3.common.MediaItem.fromUri(videoUrl.toUri()))
             prepare()
             playWhenReady = true
         }
@@ -204,7 +210,7 @@ fun SupabaseVideoPlayer(videoUrl: String) {
 fun ProfessionalTrustedPlayer(
     videoId: String,
     lifecycleOwner: LifecycleOwner,
-    onFullscreenChange: (Boolean) -> Unit
+    @Suppress("UNUSED_PARAMETER") onFullscreenChange: (Boolean) -> Unit
 ) {
     if (videoId.startsWith("https://")) {
         SupabaseVideoPlayer(videoUrl = videoId)
@@ -216,7 +222,7 @@ fun ProfessionalTrustedPlayer(
     if (isSupabaseVideo) {
         val exoPlayer = remember(videoId) {
             androidx.media3.exoplayer.ExoPlayer.Builder(context).build().apply {
-                setMediaItem(androidx.media3.common.MediaItem.fromUri(videoId))
+                setMediaItem(androidx.media3.common.MediaItem.fromUri(videoId.toUri()))
                 prepare()
                 playWhenReady = true
             }

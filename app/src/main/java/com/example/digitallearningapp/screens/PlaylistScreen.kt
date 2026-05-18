@@ -1,10 +1,8 @@
 package com.example.digitallearningapp.screens
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,16 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -32,27 +27,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.digitallearningapp.model.Video
+import com.example.digitallearningapp.viewmodel.PlaylistViewModel
+import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
     studentName: String,
     channelId: String,
-    videos: List<Video>,
-    isLoading: Boolean = false,
-    errorMessage: String? = null,
+    navController: NavHostController,
     onBackClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onVideoClick: (String) -> Unit,
-    onRetryClick: (String) -> Unit
+    playlistViewModel: PlaylistViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val videos by playlistViewModel.videos
+    val isLoading by playlistViewModel.isLoading
+    val errorMessage by playlistViewModel.errorMessage
+
+    LaunchedEffect(channelId) {
+        playlistViewModel.fetchVideosFromSupabase(channelId)
+    }
 
     Scaffold(
         topBar = {
-            PlaylistTopBar(studentName, onBackClick, onProfileClick)
+            PlaylistTopBar(studentName, onBackClick)
         },
         containerColor = Color(0xFFF9F9FF)
     ) { padding ->
@@ -72,9 +75,11 @@ fun PlaylistScreen(
                     ) {
                         Icon(Icons.Default.Warning, null, tint = Color.Red, modifier = Modifier.size(64.dp))
                         Spacer(Modifier.height(16.dp))
-                        Text(errorMessage, textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(errorMessage!!, textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(24.dp))
-                        Button(onClick = { onRetryClick(channelId) }) { Text("إعادة المحاولة") }
+                        Button(onClick = { playlistViewModel.fetchVideosFromSupabase(channelId) }) {
+                            Text("إعادة المحاولة")
+                        }
                     }
                 }
                 videos.isEmpty() -> {
@@ -85,19 +90,20 @@ fun PlaylistScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 32.dp)
                     ) {
-                        item {
-                            HeaderSection(studentName)
-                        }
+                        item { HeaderSection(studentName) }
 
                         items(videos) { video ->
                             Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                                 LessonCard(
                                     video = video,
-                                    onVideoClick = { onVideoClick(video.videoId) },
+                                    onVideoClick = {
+                                        val identifier = video.videoUrl ?: video.videoId
+                                        val encoded = URLEncoder.encode(identifier, "UTF-8")
+                                        navController.navigate("video_screen/$encoded")
+                                    },
                                     onPdfClick = {
-                                        // Placeholder URL for Google Drive PDF
-                                        val pdfUrl = "https://www.google.com" 
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pdfUrl))
+                                        val pdfUrl = "https://www.google.com"
+                                        val intent = Intent(Intent.ACTION_VIEW, pdfUrl.toUri())
                                         context.startActivity(intent)
                                     }
                                 )
@@ -118,7 +124,7 @@ fun PlaylistScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistTopBar(name: String, onBack: () -> Unit, onProfile: () -> Unit) {
+fun PlaylistTopBar(name: String, onBack: () -> Unit) {
     val gradient = Brush.verticalGradient(colors = listOf(Color(0xFF4A90E2), Color(0xFF2C5282)))
     Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 4.dp) {
         Box(modifier = Modifier.fillMaxWidth().background(gradient).statusBarsPadding()) {
@@ -127,11 +133,6 @@ fun PlaylistTopBar(name: String, onBack: () -> Unit, onProfile: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onProfile) {
-                        Icon(Icons.Default.Person, "Profile", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -158,7 +159,6 @@ fun LessonCard(video: Video, onVideoClick: () -> Unit, onPdfClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Video Thumbnail Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,13 +179,11 @@ fun LessonCard(video: Video, onVideoClick: () -> Unit, onPdfClick: () -> Unit) {
                 }
             }
 
-            // Info and PDF Section
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(text = video.title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF161C27), maxLines = 2)
-                
+
                 Spacer(Modifier.height(12.dp))
 
-                // PDF Download Button
                 OutlinedButton(
                     onClick = onPdfClick,
                     modifier = Modifier.fillMaxWidth(),

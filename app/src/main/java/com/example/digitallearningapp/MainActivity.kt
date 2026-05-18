@@ -46,10 +46,10 @@ fun DigitalLearningApp() {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
 
+        // إخفاء الشريط السفلي فقط في الشاشات التمهيدية وشاشات الدخول
         val hideBottomBar = currentRoute in listOf(
             "splash",
             "login_screen",
-            "video_bento/{videoId}",
             "register",
             "welcome_screen/{name}"
         )
